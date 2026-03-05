@@ -15,7 +15,7 @@ We used historical campaign data containing:
 The dataset was synthetically generated for demonstration, methodology was applied to real customer data.
 
 ## Methodology
-1. **Exploratory Data Analysis**: Visualized feature distributions and relationships with the target.
+1. **Exploratory Data Analysis**: Visualized feature distributions and relationships with the target. 
 2. **Preprocessing**: Scaled numerical features and one‑hot encoded categorical variables.
 3. **Modeling**: Trained a Random Forest classifier to predict open probability.
 4. **Evaluation**: Used ROC‑AUC and classification report; achieved ROC‑AUC of 0.78.
@@ -42,3 +42,5 @@ The dataset was synthetically generated for demonstration, methodology was appli
 - **Automate Retraining**: Set up a scheduled pipeline (e.g., monthly) that ingests new campaign data, retrains the model, and updates the scoring system.
 - **Deployment**: Package the model as a REST API using Flask or FastAPI, and integrate with the marketing automation platform (e.g., Salesforce Marketing Cloud, Braze).
 - **Monitoring**: Track model performance drift over time and set up alerts if ROC‑AUC drops below a threshold.
+
+Notebook Model_experimentation.ipynb include grid search for tuning on both Random forest and the additional model XGBoost. Neither performed significangtyl better so the experimentation ended there.
