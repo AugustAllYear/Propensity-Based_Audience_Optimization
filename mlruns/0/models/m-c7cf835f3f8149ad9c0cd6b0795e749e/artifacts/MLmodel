@@ -1,0 +1,33 @@
+artifact_path: /Users/augustvollbrecht/Desktop/Propensity-Based_Audience_Optimization/mlruns/0/models/m-c7cf835f3f8149ad9c0cd6b0795e749e/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.11.9
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.8.0
+    skops_trusted_types: null
+is_signature_from_type_hint: false
+mlflow_version: 3.10.1
+model_id: m-c7cf835f3f8149ad9c0cd6b0795e749e
+model_size_bytes: 133711
+model_uuid: m-c7cf835f3f8149ad9c0cd6b0795e749e
+prompts: null
+run_id: b885fd82e5754b3ea2c56d9404bb31b4
+signature:
+  inputs: '[{"type": "long", "name": "age", "required": true}, {"type": "long", "name":
+    "income", "required": true}, {"type": "long", "name": "tenure", "required": true},
+    {"type": "long", "name": "last_purchase_days", "required": true}, {"type": "long",
+    "name": "avg_order_value", "required": true}, {"type": "string", "name": "campaign_channel",
+    "required": true}, {"type": "string", "name": "campaign_type", "required": true}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [-1]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-03-06 15:33:35.805439'

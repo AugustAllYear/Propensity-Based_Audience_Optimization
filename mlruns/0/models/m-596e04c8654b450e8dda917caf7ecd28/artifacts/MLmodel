@@ -1,0 +1,23 @@
+artifact_path: /Users/augustvollbrecht/Desktop/Propensity-Based_Audience_Optimization/mlruns/0/models/m-596e04c8654b450e8dda917caf7ecd28/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.11.9
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.8.0
+    skops_trusted_types: null
+mlflow_version: 3.10.1
+model_id: m-596e04c8654b450e8dda917caf7ecd28
+model_size_bytes: 6190683
+model_uuid: m-596e04c8654b450e8dda917caf7ecd28
+prompts: null
+run_id: 156dd945471f42c19a85ea10327bd3c1
+utc_time_created: '2026-03-06 14:45:08.926261'

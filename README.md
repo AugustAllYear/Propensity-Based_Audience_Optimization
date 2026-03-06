@@ -33,14 +33,21 @@ The dataset was synthetically generated for demonstration, methodology was appli
 4. (Optional) Replace the synthetic data with your own CSV file, ensuring column names and datatypes match.
 
 ## Continuation and Refinement Suggestions
+**Notebook Model_experimentation.ipynb**: this notebook showcases further model exploration and tuning, only on the best performing of the tested models. A GridSearchCV was performed (with cross validation on multiple data split) to find the best tuning for both models tested, Random Forest and XGBoost.
+- - The tuned Random Forest model performed better than the XGBoost and slightly better than the Original Model with a new ROC score of 0.7936
+- The model should improve with more data with retraining every 4-6 months, at which time it is recommened that the experimental models are retrained as well. It is also advisable to spend time engeneering new features, ensembling (combining models in one pipeline). List below.
+
 - **A/B Test the Model**: Run a live experiment comparing the model’s top 30% against a random 30% control group to validate the lift.
 - **Feature Engineering**: Incorporate additional features such as:
   - Customer lifetime value
   - Previous campaign engagement history (e.g., number of opens in last 3 months)
   - Time‑based features (day of week, season)
+  - Average response time
 - **Model Improvement**: Experiment with gradient boosting (XGBoost, LightGBM) and tune hyperparameters via cross‑validation.
 - **Automate Retraining**: Set up a scheduled pipeline (e.g., monthly) that ingests new campaign data, retrains the model, and updates the scoring system.
 - **Deployment**: Package the model as a REST API using Flask or FastAPI, and integrate with the marketing automation platform (e.g., Salesforce Marketing Cloud, Braze).
 - **Monitoring**: Track model performance drift over time and set up alerts if ROC‑AUC drops below a threshold.
+-- Note:  
+Recommended CI/CD platforms: GitHub Actions, GitLab CI, Jenkins, Azure DevOps, CircleCI. For a data science project, GitHub Actions is popular because it integrates with code repositories and is free for public/private repos up to a limit.
 
-Notebook Model_experimentation.ipynb include grid search for tuning on both Random forest and the additional model XGBoost. Neither performed significangtyl better so the experimentation ended there.
+If data files being used are below 14GB data can be processed using GitHub actions. Otherwise may need to upgrade to (S3) and trigger jobs.
