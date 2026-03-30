@@ -12,7 +12,7 @@ We used historical campaign data containing:
 - Campaign attributes: channel (email, social, push), type (promotional, informational, loyalty)
 - Engagement flag: whether the customer opened the email (target variable)
 
-The dataset was synthetically generated for demonstration, methodology was applied to real customer data.
+The dataset was synthetically generated for demonstration; the methodology was applied to real customer data.
 
 ## Methodology
 1. **Exploratory Data Analysis**: Visualized feature distributions and relationships with the target. 
@@ -30,12 +30,12 @@ The dataset was synthetically generated for demonstration, methodology was appli
 1. Clone the repository.
 2. Install dependencies: `pip install -r requirements.txt`
 3. Run the Jupyter notebook or Python script `campaign_optimization.py`.
-4. (Optional) Replace the synthetic data with your own CSV file, ensuring column names and datatypes match.
+4. (Optional) Replace the synthetic data with your own CSV file, ensuring column names and data types match.
 
 ## Continuation and Refinement Suggestions
-**Notebook Model_experimentation.ipynb**: this notebook showcases further model exploration and tuning, only on the best performing of the tested models. A GridSearchCV was performed (with cross validation on multiple data split) to find the best tuning for both models tested, Random Forest and XGBoost.
+**Notebook Model_experimentation.ipynb**: this notebook showcases further model exploration and tuning, only on the best performing of the tested models. A GridSearchCV was performed (with cross validation on multiple data splits) to find the best tuning for both models tested, Random Forest and XGBoost.
 - - The tuned Random Forest model performed better than the XGBoost and slightly better than the Original Model with a new ROC score of 0.7936
-- The model should improve with more data with retraining every 4-6 months, at which time it is recommened that the experimental models are retrained as well. It is also advisable to spend time engeneering new features, ensembling (combining models in one pipeline). List below.
+- The model should improve with more data with retraining every 4‑6 months, at which time it is recommended that the experimental models are retrained as well. It is also advisable to spend time engineering new features, ensembling (combining models in one pipeline). List below.
 
 - **A/B Test the Model**: Run a live experiment comparing the model’s top 30% against a random 30% control group to validate the lift.
 - **Feature Engineering**: Incorporate additional features such as:
