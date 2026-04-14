@@ -55,11 +55,32 @@ propensity_optimization/
 - In a six‑month simulation, switching from random to model‑based targeting increased cumulative opens by **25%**, meeting the business objective.
 - Hyperparameter tuning improved ROC‑AUC from 0.781 to 0.794; XGBoost achieved 0.782.
 
-## How to Run
-1. Clone the repository.
-2. Install dependencies: `pip install -r requirements.txt`
-3. Run the Jupyter notebook `propensity_educational.ipynb`.
-4. (Optional) Replace the synthetic data with your own CSV file, ensuring column names and data types match.
+
+## Setup
+```bash
+    git clone ...
+    cd propensity_optimization
+    python -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+```
+### Configuration
+
+Edit `config/config.yaml' to change data size, model paramaters, ect.
+
+### Usage
+
+#### Train models
+```bash
+    python -m src.trian
+```
+
+#### Evaluation and run simulation
+```
+from src.predict import load_model, predict
+import pandas as pd
+model, preprocessor = loa
+    
 
 ## Continuation and Refinement Suggestions
 - **A/B Test the Model**: Run a live experiment comparing the model’s top 30% against a random 30% control group to validate the lift.
