@@ -27,26 +27,21 @@ The dataset was synthetically generated for demonstration; the methodology was a
 
 ```
 propensity_optimization/
+├── app.py                
 ├── config/
-│   └── config.yaml
 ├── src/
 │   ├── __init__.py
 │   ├── data.py
-│   ├── features.py
+│   ├── features.py       
 │   ├── train.py
 │   ├── evaluate.py
 │   ├── predict.py
 │   └── utils.py
-├── notebooks/
-│   └── propensity_educational.ipynb   (lightweight demo)
 ├── tests/
-│   ├── test_data.py
-│   └── test_model.py
-├── models/                             (saved models)
-├── images/                             (plots)
+├── notebooks/
 ├── requirements.txt
-├── README.md
-└── .gitignore
+├── License
+└── README.md
 ```
 
 ## Results

@@ -40,4 +40,10 @@ mlflow:
   experiment_name: Propensity_Optimization
   tracking_url: null #local ./mlruns
 
+dashboard:
+  title: "Propensity‑Based Audience Optimization Dashboard"
+  default_top_percent: 0.3
+  page_layout: "wide"
+  simulation_chart: true
+
   
