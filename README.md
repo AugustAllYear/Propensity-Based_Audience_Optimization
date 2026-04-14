@@ -23,6 +23,32 @@ The dataset was synthetically generated for demonstration; the methodology was a
 
 **MLflow Tracking**: All experiments (baseline, tuned Random Forest, XGBoost) are automatically logged to the local `mlruns/` directory. To view the UI, run `mlflow ui`.
 
+## Project Structure
+
+```
+propensity_optimization/
+├── config/
+│   └── config.yaml
+├── src/
+│   ├── __init__.py
+│   ├── data.py
+│   ├── features.py
+│   ├── train.py
+│   ├── evaluate.py
+│   ├── predict.py
+│   └── utils.py
+├── notebooks/
+│   └── propensity_educational.ipynb   (lightweight demo)
+├── tests/
+│   ├── test_data.py
+│   └── test_model.py
+├── models/                             (saved models)
+├── images/                             (plots)
+├── requirements.txt
+├── README.md
+└── .gitignore
+```
+
 ## Results
 - The model identified recency (`last_purchase_days`) as the strongest predictor of opens.
 - Targeting the top 30% of customers by predicted probability captures ~68% of all potential opens.

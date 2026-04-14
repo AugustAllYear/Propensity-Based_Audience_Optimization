@@ -1,0 +1,43 @@
+# Propensity-Based Optimization Configuration
+
+data: 
+  n_custoemrs: 5000
+  random_sate: 42
+  sent_prob: 0.8
+
+features:
+  numeric:
+    - age
+    - income
+    - tenure
+    - last_purchase_days
+    - avg_ordder_value
+  categorical:
+    - campaign_channel
+    - campaign_type
+
+model: 
+  random_forest:
+    n_estimators: 100
+    random_state: 42
+    eval_metric: logloss
+
+trianing: 
+  test_size: 0.2
+  random_state: 42
+
+targeting:
+  top_percent:
+  simulation_months:  6
+  random_initial_months: 3
+
+paths: 
+  models: models/
+  images: images/
+  data_processed: data/processed/
+
+mlflow: 
+  experiment_name: Propensity_Optimization
+  tracking_url: null #local ./mlruns
+
+  
