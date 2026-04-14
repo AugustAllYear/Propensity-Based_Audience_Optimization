@@ -66,7 +66,7 @@ propensity_optimization/
 ```
 ### Configuration
 
-Edit `config/config.yaml' to change data size, model paramaters, ect.
+Edit ```config/config.yaml' to change data size, model paramaters, ect.
 
 ### Usage
 
@@ -77,9 +77,22 @@ Edit `config/config.yaml' to change data size, model paramaters, ect.
 
 #### Evaluation and run simulation
 ```
-from src.predict import load_model, predict
-import pandas as pd
-model, preprocessor = loa
+    from src.predict import load_model, predict
+    import pandas as pd
+    model, preprocessor = load_model()
+    new_data = pd.read_csv("new_customers.csv")
+    probs = predict(new_data, model, preprocessor, config)
+```
+
+#### MLflow Tracking
+```bash
+    mlflow ui
+```
+
+#### Run tests
+```bash
+    pytest tests/
+```
     
 
 ## Continuation and Refinement Suggestions
