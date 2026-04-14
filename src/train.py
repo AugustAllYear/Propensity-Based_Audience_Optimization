@@ -12,6 +12,9 @@ from src.utils import load_config, setup_logging, ensure_dir
 
 logger = setup_logging()
 
+# PRODUCTION: Replace synthetic data generation with loading from a database or data lake.
+# PRODUCTION: Use MLflow Model Registry to promote models to production.
+
 def train_random_forest(X_train, y_train, config):
     rf_cfg = config['model']['random_forest']
     model = RandomForestClassifier(

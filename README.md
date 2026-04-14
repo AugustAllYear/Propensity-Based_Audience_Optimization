@@ -66,22 +66,35 @@ propensity_optimization/
 ```
 ### Configuration
 
-Edit ```config/config.yaml' to change data size, model paramaters, ect.
+All parameters are centralized in `config/config.yaml`. You can adjust data size, model hyperparameters, targeting thresholds, and simulation settings without touching the code.
 
 ### Usage
 
-#### Train models
-```bash
-    python -m src.trian
-```
-
-#### Evaluation and run simulation
+#### Evaluation, Train and run simulation
 ```
     from src.predict import load_model, predict
     import pandas as pd
     model, preprocessor = load_model()
     new_data = pd.read_csv("new_customers.csv")
     probs = predict(new_data, model, preprocessor, config)
+```
+
+**Train**
+
+```bash
+    python -m src.trian
+```
+
+**Evaluate**
+
+```bash
+    python -m
+```
+
+**Predict**
+
+```bash
+    src.predict.predict()
 ```
 
 #### MLflow Tracking
@@ -93,8 +106,31 @@ Edit ```config/config.yaml' to change data size, model paramaters, ect.
 ```bash
     pytest tests/
 ```
-    
 
+
+## Running the Dashboard
+
+After training the models (`python -m src.train`), launch the interactive dashboard:
+
+```bash
+streamlit run dashboard.py
+```
+
+The dashboard allows you to:
+- Upload your own customer CSV or use synthetic data.
+- Score customers and see the top X% most likely to open.
+- View the six‑month simulation chart (if ground truth labels exist).
+- Explore feature importances (for Random Forest).
+
+## Production Considerations
+
+1. **Model Registry**: Use MLflow Model Registry to manage model versions (stage "Staging" → "Production").
+2. **Automated Retraining**: Schedule `src/train.py` weekly via cron or GitHub Actions.
+3. **Data Validation**: Implement schema checks (column names, types) before training/prediction – see `src/data.py`.
+4. **Secrets Management**: Never hardcode API keys or database URIs; use environment variables or a secrets manager.
+5. **Monitoring**: Track prediction drift (PSI) and model performance (ROC‑AUC) over time. Set alerts for degradation.
+6. **Deployment**: Package the model as a REST API (FastAPI) for real‑time scoring. The dashboard is for batch exploration only.
+    
 ## Continuation and Refinement Suggestions
 - **A/B Test the Model**: Run a live experiment comparing the model’s top 30% against a random 30% control group to validate the lift.
 - **Feature Engineering**: Incorporate additional features such as customer lifetime value, previous campaign engagement history (e.g., number of opens in last 3 months), time‑based features (day of week, season), and average response time.
@@ -104,6 +140,10 @@ Edit ```config/config.yaml' to change data size, model paramaters, ect.
 - **Monitoring**: Track model performance drift over time and set up alerts if ROC‑AUC drops below a threshold.
 
 **CI/CD**: Recommended platforms include GitHub Actions, GitLab CI, Jenkins, Azure DevOps, or CircleCI. For this project, GitHub Actions is used (free for public/private repos up to a limit). If data files exceed 14GB, consider upgrading to cloud storage (e.g., S3) and trigger jobs accordingly.
+
+## Related Project: Sentinel_AI Fraud Detection
+
+This propensity optimization pipeline inspired and adapted to **[Sentinel_AI](https://github.com/AugustAllYear/Sentinel_AI)**, an end‑to‑end fraud detection system. Sentinel_AI uses similar architectural patterns: configuration‑driven scripts, MLflow tracking, CI/CD with GitHub Actions, and a Streamlit dashboard. The main differences are the domain (marketing vs. fraud) and the evaluation focus (lift in opens vs. fraud capture rate). Both projects share the same production‑ready structure.
 
 ## License
 MIT
