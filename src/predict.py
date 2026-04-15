@@ -12,6 +12,10 @@ def load_model(model_path=None, preprocessor_path=None):
         model_path = os.path.join(config['paths']['models'], "random_forest.joblib")
     if preprocessor_path is None:
         preprocessor_path = os.path.join(config['paths']['models'], "preprocessor.joblib")
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(
+            f"Model not found at {model_path}. Please run `python -m src.train` first."
+        )
     model = joblib.load(model_path)
     preprocessor = joblib.load(preprocessor_path)
     return model, preprocessor

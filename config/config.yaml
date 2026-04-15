@@ -46,4 +46,9 @@ dashboard:
   page_layout: "wide"
   simulation_chart: true
 
+cost_benefit:
+  default_cost_per_email: 0.05   # dollars
+  default_conversion_rate: 0.1   # 10%
+  default_avg_order_value: 100   # dollars
+
   

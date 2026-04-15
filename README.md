@@ -71,6 +71,34 @@ propensity_optimization/
 
 All parameters are centralized in `config/config.yaml`. You can adjust data size, model hyperparameters, targeting thresholds, and simulation settings without touching the code.
 
+## Integration Notes
+
+### SHAP Explanations
+SHAP requires a tree‑based model (Random Forest or XGBoost). The dashboard uses `shap.TreeExplainer` which works with our trained models. For large datasets, SHAP computations may be slow; we limit to the first 5 customers.
+
+### FastAPI Prediction Service
+The API (`api.py`) runs independently of the dashboard. To use it:
+1. Train the model first: `python -m src.train`
+2. Start the server: `uvicorn api:app --reload --port 8000`
+3. Send POST requests to `/predict` (single) or `/predict_batch` (multiple).
+
+The API is free and open‑source. You can deploy it on any cloud platform (e.g., Heroku, AWS, GCP) or run locally.
+
+### GitHub Actions for Retraining
+The workflow `.github/workflows/retrain.yml` runs every Sunday at midnight. It:
+- Checks out the code.
+- Installs dependencies.
+- Runs `python -m src.train`.
+- Uploads the trained models as artifacts.
+
+For production with real data, you must provide access to data files (e.g., via secrets or cloud storage). The current workflow uses synthetic data; adapt the `src/train.py` to load real data from a fixed location.
+
+### MLflow Performance Chart
+The dashboard’s “Model performance over time” chart relies on MLflow runs being logged. If you have not run training, the chart will be empty. After training, runs are stored locally in `mlruns/`. To view the chart, ensure you have logged runs with the experiment name `Propensity_Optimization` (default).
+
+### Cost‑Benefit Defaults
+Default values for cost per email, conversion rate, and average order value are stored in `config/config.yaml` under the `cost_benefit` section. Users can override them in the dashboard sidebar.
+
 ### Usage
 
 #### Evaluation, Train and run simulation
