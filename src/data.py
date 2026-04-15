@@ -23,16 +23,16 @@ def generate_data(n_customers=5000, random_state=42, sent_prob=0.8):
     df = pd.DataFrame(data)
 
     def generate_opened(row):
-        prob = 0.1
+        prob = 0.05  # base lower to avoid ceiling
         if row['last_purchase_days'] < 60:
-            prob += 0.2
+            prob += 0.3   # stronger signal
         if row['income'] > 60000:
-            prob += 0.1
-        if row['campaign_channel'] == 'email':
             prob += 0.15
+        if row['campaign_channel'] == 'email':
+            prob += 0.2
         if row['campaign_type'] == 'promotional':
             prob += 0.1
-        prob = min(prob, 0.9)
+        prob = min(prob, 0.95)
         return np.random.binomial(1, prob)
 
     df['opened'] = df.apply(generate_opened, axis=1)
