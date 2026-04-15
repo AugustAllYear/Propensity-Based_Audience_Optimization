@@ -1,8 +1,8 @@
-# Propensity-Based Optimization Configuration
+# Propensity‑Based Audience Optimization Configuration
 
-data: 
-  n_custoemrs: 5000
-  random_sate: 42
+data:
+  n_customers: 5000
+  random_state: 42
   sent_prob: 0.8
 
 features:
@@ -11,34 +11,38 @@ features:
     - income
     - tenure
     - last_purchase_days
-    - avg_ordder_value
+    - avg_order_value
   categorical:
     - campaign_channel
     - campaign_type
 
-model: 
+model:
   random_forest:
+    n_estimators: 100
+    random_state: 42
+    class_weight: null
+  xgboost:
     n_estimators: 100
     random_state: 42
     eval_metric: logloss
 
-trianing: 
+training:
   test_size: 0.2
   random_state: 42
 
 targeting:
-  top_percent:
-  simulation_months:  6
+  top_percent: 0.3
+  simulation_months: 6
   random_initial_months: 3
 
-paths: 
+paths:
   models: models/
   images: images/
   data_processed: data/processed/
 
-mlflow: 
+mlflow:
   experiment_name: Propensity_Optimization
-  tracking_url: null #local ./mlruns
+  tracking_uri: null
 
 dashboard:
   title: "Propensity‑Based Audience Optimization Dashboard"
@@ -47,8 +51,6 @@ dashboard:
   simulation_chart: true
 
 cost_benefit:
-  default_cost_per_email: 0.05   # dollars
-  default_conversion_rate: 0.1   # 10%
-  default_avg_order_value: 100   # dollars
-
-  
+  default_cost_per_email: 0.05
+  default_conversion_rate: 0.1
+  default_avg_order_value: 100  

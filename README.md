@@ -1,41 +1,40 @@
 # Propensity‑Based Audience Optimization
 
 ## Project Overview
-This project develops a machine learning model to optimize email marketing campaigns. By predicting which customers are most likely to engage (open an email), the marketing team can target a smaller, higher‑potential audience, increasing overall reach while keeping send volume constant. The solution is designed to be replicable and can be integrated into a monthly campaign workflow.
+This project develops a machine learning model to optimize email marketing campaigns. By predicting which customers are most likely to engage (open an email), the marketing team can target a smaller, higher‑potential audience, increasing overall reach while keeping send volume constant. The solution is replicable and can be integrated into a monthly campaign workflow.
 
 ## Business Problem
-The company historically sent campaigns to its entire customer database, resulting in low open rates and wasted marketing spend. The goal was to use data‑driven targeting to increase the number of opens by 25% within six months, without increasing the number of emails sent.
+The company historically sent campaigns to its entire customer database, resulting in low open rates and wasted marketing spend. The goal was to increase the number of opens by **25% within six months** without increasing send volume.
 
 ## Data
-We used historical campaign data containing:
-- Customer demographics: age, income, tenure (months), days since last purchase, average order value
-- Campaign attributes: channel (email, social, push), type (promotional, informational, loyalty)
-- Engagement flag: whether the customer opened the email (target variable)
+Historical campaign data includes:
+- **Customer demographics**: age, income, tenure (months), days since last purchase, average order value
+- **Campaign attributes**: channel (email, social, push), type (promotional, informational, loyalty)
+- **Engagement flag**: whether the customer opened the email (target variable)
 
-The dataset was synthetically generated for demonstration; the methodology was applied to real customer data.
+The dataset is synthetically generated for demonstration; the methodology was applied to real customer data.
 
 ## Methodology
-1. **Exploratory Data Analysis**: Visualized feature distributions and relationships with the target. 
-2. **Preprocessing**: Scaled numerical features and one‑hot encoded categorical variables.
-3. **Modeling**: Trained a Random Forest classifier (baseline), tuned hyperparameters with GridSearchCV, and compared with XGBoost.
-4. **Evaluation**: Used ROC‑AUC, precision, recall, and business‑oriented simulations.
-5. **Simulation**: Compared random targeting with model‑based targeting over six months to quantify business impact.
+1. **Exploratory Data Analysis** – Visualised feature distributions and relationships with the target.
+2. **Preprocessing** – Scaled numerical features and one‑hot encoded categorical variables.
+3. **Modeling** – Trained a Random Forest classifier (baseline), tuned hyperparameters with GridSearchCV, and compared with XGBoost.
+4. **Evaluation** – Used ROC‑AUC, precision, recall, and business‑oriented simulations.
+5. **Simulation** – Compared random targeting with model‑based targeting over six months to quantify business impact.
 
-**MLflow Tracking**: All experiments (baseline, tuned Random Forest, XGBoost) are automatically logged to the local `mlruns/` directory. To view the UI, run `mlflow ui`.
+**MLflow Tracking**: All experiments are automatically logged to the local `mlruns/` directory. Run `mlflow ui` to explore.
 
 ## Project Structure
 
 ```
 propensity_optimization/
-├── .github/
-│ └── workflows/
+├── .github/workflows/
 │ └── retrain.yml # Weekly model retraining (GitHub Actions)
 ├── config/
 │ └── config.yaml # All configuration parameters
 ├── src/
 │ ├── init.py
 │ ├── data.py # Data generation & preprocessing
-│ ├── features.py # Feature engineering (if any)
+│ ├── features.py # Feature engineering (optional)
 │ ├── train.py # Model training (RF, XGBoost)
 │ ├── evaluate.py # Evaluation & simulation
 │ ├── predict.py # Prediction functions
@@ -53,51 +52,31 @@ propensity_optimization/
 ```
 
 ## Results
-- The model identified recency (`last_purchase_days`) as the strongest predictor of opens.
-- Targeting the top 30% of customers by predicted probability captures ~68% of all potential opens.
-- In a six‑month simulation, switching from random to model‑based targeting increased cumulative opens by **25%**, meeting the business objective.
-- Hyperparameter tuning improved ROC‑AUC from 0.781 to 0.794; XGBoost achieved 0.782.
+- **Most important feature**: `last_purchase_days` (recency)
+- **Targeting top 30%** captures ~68% of all potential opens.
+- **Six‑month simulation** shows a **25% increase** in cumulative opens after switching from random to model‑based targeting.
+- **ROC‑AUC improved** from 0.781 (baseline) to 0.794 (tuned Random Forest); XGBoost achieved 0.782.
 
 
 ## Setup
+
+### Prerequisites
+- Python 3.11
+- Git
+
+### Installation
 ```bash
-    git clone ...
+    git clone https://github.com/yourusername/propensity_optimization.git
     cd propensity_optimization
     python -m venv venv
-    source venv/bin/activate
+    source venv/bin/activate   # Windows: venv\Scripts\activate
     pip install -r requirements.txt
 ```
+
 ### Configuration
 
-All parameters are centralized in `config/config.yaml`. You can adjust data size, model hyperparameters, targeting thresholds, and simulation settings without touching the code.
+All parameters are centralised in `config/config.yaml`. You can adjust data size, model hyperparameters, targeting thresholds, cost‑benefit defaults, and simulation settings without touching the code.
 
-## Integration Notes
-
-### SHAP Explanations
-SHAP requires a tree‑based model (Random Forest or XGBoost). The dashboard uses `shap.TreeExplainer` which works with our trained models. For large datasets, SHAP computations may be slow; we limit to the first 5 customers.
-
-### FastAPI Prediction Service
-The API (`api.py`) runs independently of the dashboard. To use it:
-1. Train the model first: `python -m src.train`
-2. Start the server: `uvicorn api:app --reload --port 8000`
-3. Send POST requests to `/predict` (single) or `/predict_batch` (multiple).
-
-The API is free and open‑source. You can deploy it on any cloud platform (e.g., Heroku, AWS, GCP) or run locally.
-
-### GitHub Actions for Retraining
-The workflow `.github/workflows/retrain.yml` runs every Sunday at midnight. It:
-- Checks out the code.
-- Installs dependencies.
-- Runs `python -m src.train`.
-- Uploads the trained models as artifacts.
-
-For production with real data, you must provide access to data files (e.g., via secrets or cloud storage). The current workflow uses synthetic data; adapt the `src/train.py` to load real data from a fixed location.
-
-### MLflow Performance Chart
-The dashboard’s “Model performance over time” chart relies on MLflow runs being logged. If you have not run training, the chart will be empty. After training, runs are stored locally in `mlruns/`. To view the chart, ensure you have logged runs with the experiment name `Propensity_Optimization` (default).
-
-### Cost‑Benefit Defaults
-Default values for cost per email, conversion rate, and average order value are stored in `config/config.yaml` under the `cost_benefit` section. Users can override them in the dashboard sidebar.
 
 ### Usage
 
@@ -119,7 +98,7 @@ Default values for cost per email, conversion rate, and average order value are 
 **Evaluate**
 
 ```bash
-    python -m
+    python -m src.evaluate
 ```
 
 **Predict**
@@ -128,9 +107,13 @@ Default values for cost per email, conversion rate, and average order value are 
     src.predict.predict()
 ```
 
-#### MLflow Tracking
-```bash
-    mlflow ui
+*New data*
+```python
+    from src.predict import load_model, predict
+    import pandas as pd
+    model, preprocessor = load_model()
+    new_data = pd.read_csv("new_customers.csv")
+    probs = predict(new_data, model, preprocessor, config)
 ```
 
 #### Run tests
@@ -138,8 +121,7 @@ Default values for cost per email, conversion rate, and average order value are 
     pytest tests/
 ```
 
-
-## Running the Dashboard
+#### Launch Dashboard
 
 After training the models (`python -m src.train`), launch the interactive dashboard:
 
@@ -147,11 +129,58 @@ After training the models (`python -m src.train`), launch the interactive dashbo
 streamlit run dashboard.py
 ```
 
+#### Start Prediction API
+```bash
+    uvicorn api:app --reload --port 8000
+```
+
+#### MLflow UI
+```bash
+    mlflow ui
+```
+
+### Dashboard Features
+
 The dashboard allows you to:
-- Upload your own customer CSV or use synthetic data.
-- Score customers and see the top X% most likely to open.
-- View the six‑month simulation chart (if ground truth labels exist).
-- Explore feature importances (for Random Forest).
+- Upload customer CSV or use synthetic data.
+- Score customers and see top X% most likely to open.
+- View six‑month simulation chart (if ground truth exists).
+- SHAP explanations for individual predictions.
+- Feature importance bar chart.
+- Cost‑benefit analysis with adjustable inputs.
+- A/B test simulation with statistical significance.
+- Model performance over time (from MLflow history).
+
+### Integration Notes
+- SHAP works with tree‑based models (Random Forest, XGBoost). For large datasets, SHAP is limited to the first 5 customers to maintain performance.
+- FastAPI is free and open‑source. Run it alongside the dashboard for batch predictions.
+- GitHub Actions (.github/workflows/retrain.yml) retrains the model every Sunday. For real data, adapt src/train.py to load from a fixed location (e.g., S3, database) and use secrets for credentials.
+- MLflow performance chart requires logged runs with experiment name Propensity_Optimization. It will be empty until you train at least once.
+- Cost‑benefit defaults are stored in config/config.yaml under the cost_benefit section.
+
+### Production Considerations
+1. Model Registry – Use MLflow Model Registry to promote models from staging to production.
+
+2. Automated Retraining – Schedule src/train.py weekly (already set up via GitHub Actions).
+
+3. Data Validation – Implement schema checks (column names, types) before training/prediction.
+
+4. Secrets Management – Never hardcode API keys; use environment variables or a secrets manager.
+
+5. Monitoring – Track prediction drift (PSI) and model performance (ROC‑AUC) over time; set alerts for degradation.
+
+6. Deployment – Package the model as a REST API (FastAPI) for real‑time scoring; the dashboard is for batch exploration only.
+
+### FastAPI Prediction Service
+The API (`api.py`) runs independently of the dashboard. To use it:
+1. Train the model first: `python -m src.train`
+2. Start the server: `uvicorn api:app --reload --port 8000`
+3. Send POST requests to `/predict` (single) or `/predict_batch` (multiple).
+
+The API is free and open‑source. You can deploy it on any cloud platform (e.g., Heroku, AWS, GCP) or run locally.
+
+### Cost‑Benefit Defaults
+Default values for cost per email, conversion rate, and average order value are stored in `config/config.yaml` under the `cost_benefit` section. Users can override them in the dashboard sidebar.
 
 ## Production Considerations
 
@@ -170,11 +199,11 @@ The dashboard allows you to:
 - **Deployment**: Package the model as a REST API using FastAPI, and integrate with marketing automation platforms (e.g., Salesforce Marketing Cloud, Braze).
 - **Monitoring**: Track model performance drift over time and set up alerts if ROC‑AUC drops below a threshold.
 
-**CI/CD**: Recommended platforms include GitHub Actions, GitLab CI, Jenkins, Azure DevOps, or CircleCI. For this project, GitHub Actions is used (free for public/private repos up to a limit). If data files exceed 14GB, consider upgrading to cloud storage (e.g., S3) and trigger jobs accordingly.
+**CI/CD**: Recommended platforms include GitHub Actions, GitLab GitHub Actions is used for CI/CD (free for public/private repos up to limits). If data files exceed 14GB, consider upgrading to cloud storage (e.g., S3) and triggering jobs externally.
 
 ## Related Project: Sentinel_AI Fraud Detection
 
-This propensity optimization pipeline inspired and adapted to **[Sentinel_AI](https://github.com/AugustAllYear/Sentinel_AI)**, an end‑to‑end fraud detection system. Sentinel_AI uses similar architectural patterns: configuration‑driven scripts, MLflow tracking, CI/CD with GitHub Actions, and a Streamlit dashboard. The main differences are the domain (marketing vs. fraud) and the evaluation focus (lift in opens vs. fraud capture rate). Both projects share the same production‑ready structure.
+This project inspired and was adapted to Sentinel_AI, an end‑to‑end fraud detection system. Both share the same production‑ready architecture: configuration‑driven scripts, MLflow tracking, GitHub Actions CI/CD, and a Streamlit dashboard.
 
 ## License
 MIT
