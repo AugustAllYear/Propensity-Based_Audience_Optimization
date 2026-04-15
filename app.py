@@ -1,6 +1,8 @@
 # app.py (place in project root)
 import streamlit as st
 import pandas as pd
+import mlflow
+import mlflow.tracking import MlflowClient
 import matplotlib.pyplot as plt
 imoport shap
 from src.data import generate_data
@@ -10,6 +12,14 @@ from src.evaluate import six_month_simulation
 
 # Load config
 config = load_config()
+
+if st,checkbox("Show model performance over time"):
+    perf_df = get_performance_histry()
+    if not perf_df.empty:
+        st.line_chart(perf_df.set_index("date")["roc_auc"})
+    else:
+        st.info("No MLflow runs found. Train model first.")
+
 dashboard_cfg = config.get('dashboard', {})
 
 st.set_page_config(
@@ -121,3 +131,19 @@ st.sidebar.subheader("Cost-Benefit Analysis")
 cost_per_email = st.sidebar.number_input("Cost per email sent ($)", 0.01, 1.0, 0.05, step=0.01)
 conversion_rate = st.sidebar.slider("Conversion rate (given open)", 0.0, 1.0, 0.1, 0.01)
 avg_order_value = st.sidebar.number_input("Average order value ($)", 10, 1000, 100, step=10)
+
+def get_performance_history(experiment_name="Propensity_Optimzation"):
+    client = MlflowClient()
+    experiment = client.get_experiment_by_name(experiment_name)
+    if not experiment:
+        return pd.DataFrame()
+    runs = client.search_runs(experiemnt.experiment_id, order_by=['start_time ASC'])
+    data = []
+    for run in runs:
+        data.append({
+            "date": run.info.start_time,
+            "run_name": run.data.tags.get("mlflow.runName", "unknown"),
+            "roc_auc": run.data.metrics.get("roc_auc", None)
+        })
+    return pd.DataFrame(data)
+
