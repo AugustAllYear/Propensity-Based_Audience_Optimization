@@ -5,8 +5,11 @@ import mlflow.sklearn
 import pandas as pd
 import os
 import joblib
+import seaborn as sns
+import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import train_test_split
 from src.data import generate_data, preprocess_data
 from src.features import engineer_features
 from src.utils import setup_logging, load_config
@@ -23,7 +26,6 @@ def load_real_data(file_path: str):
             raise ValueError(f"Missing required column: {col}")
     return df
 
-# --- Exported training functions ---
 def train_random_forest(X_train, y_train, config):
     rf_cfg = config['model']['random_forest']
     model = RandomForestClassifier(
@@ -61,14 +63,24 @@ def main():
             sent_prob=config['data']['sent_prob']
         )
 
-    # Optional feature engineering
+    # Split into training (80%) and holdout (20%) for final evaluation
+    df_train, df_holdout = train_test_split(df, test_size=0.2, random_state=42)
+    logger.info(f"Training size: {len(df_train)}, Holdout size: {len(df_holdout)}")
+
+    # Save holdout for later evaluation
+    holdout_path = os.path.join(config['paths']['data_processed'], "holdout.csv")
+    os.makedirs(config['paths']['data_processed'], exist_ok=True)
+    df_holdout.to_csv(holdout_path, index=False)
+    logger.info(f"Saved holdout data to {holdout_path}")
+
+    # Optional feature engineering (on training data only)
     feat_config = config.get('features', {}).get('engineering', {})
     if feat_config.get('enabled', False):
         logger.info("Applying feature engineering...")
-        df = engineer_features(df, config=feat_config)
-
-    # Preprocess
-    train_df = df[df['sent'] == 1].copy()
+        df_train = engineer_features(df_train, config=feat_config)
+        
+    # Preprocess training data
+    train_df = df_train[df_train['sent'] == 1].copy()
     X_train, X_test, y_train, y_test, preprocessor = preprocess_data(
         train_df,
         numeric_features=config['features']['numeric'],
@@ -105,4 +117,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

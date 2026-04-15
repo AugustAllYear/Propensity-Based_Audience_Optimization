@@ -1,7 +1,7 @@
 # Propensity‑Based Audience Optimization Configuration
 
 data:
-  n_customers: 5000
+  n_customers: 10000
   random_state: 42
   sent_prob: 0.8
 

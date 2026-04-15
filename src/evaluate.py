@@ -1,4 +1,4 @@
-"""Evaluate model and run six‑month simulation."""
+"""Evaluate model on holdout data and run six‑month simulation."""
 
 import pandas as pd
 import numpy as np
@@ -6,8 +6,7 @@ import matplotlib.pyplot as plt
 import joblib
 import os
 from sklearn.metrics import roc_auc_score, classification_report
-from sklearn.model_selection import train_test_split
-from src.data import generate_data, preprocess_data
+from src.data import preprocess_data   # <-- ADD THIS LINE
 from src.features import engineer_features
 from src.utils import load_config, setup_logging, ensure_dir, plot_roc_curve
 
@@ -46,23 +45,22 @@ def six_month_simulation(df, model, preprocessor, features, top_percent=0.3, ran
 
 def main():
     config = load_config()
-    df = generate_data(
-        n_customers=config['data']['n_customers'],
-        random_state=config['data']['random_state'],
-        sent_prob=config['data']['sent_prob']
-    )
 
-    # Apply feature engineering if enabled
+    # Load holdout data (saved during training)
+    holdout_path = os.path.join(config['paths']['data_processed'], "holdout.csv")
+    if not os.path.exists(holdout_path):
+        logger.error(f"Holdout data not found at {holdout_path}. Run `python -m src.train` first.")
+        return
+    df = pd.read_csv(holdout_path)
+    logger.info(f"Loaded holdout data: {len(df)} rows")
+
+    # Apply feature engineering if enabled (must match training)
     feat_config = config.get('features', {}).get('engineering', {})
     if feat_config.get('enabled', False):
         logger.info("Applying feature engineering...")
         df = engineer_features(df, config=feat_config)
 
-    # Split data: training and simulation holdout (80/20)
-    df_train, df_sim = train_test_split(df, test_size=0.2, random_state=42)
-    logger.info(f"Training size: {len(df_train)}, Simulation size: {len(df_sim)}")
-
-    # Load model and preprocessor (trained on full training set)
+    # Load model and preprocessor
     model_path = os.path.join(config['paths']['models'], "random_forest.joblib")
     preprocessor_path = os.path.join(config['paths']['models'], "preprocessor.joblib")
     if not os.path.exists(model_path):
@@ -71,8 +69,8 @@ def main():
     model = joblib.load(model_path)
     preprocessor = joblib.load(preprocessor_path)
 
-    # Evaluate on test set (from training split)
-    train_df = df_train[df_train['sent'] == 1].copy()
+    # Prepare test set (from holdout)
+    train_df = df[df['sent'] == 1].copy()
     features = config['features']['numeric'] + config['features']['categorical']
     X_train, X_test, y_train, y_test, _ = preprocess_data(
         train_df,
@@ -81,9 +79,11 @@ def main():
         test_size=config['training']['test_size'],
         random_state=config['training']['random_state']
     )
+
+    # Evaluate
     y_proba = model.predict_proba(X_test)[:, 1]
     auc = roc_auc_score(y_test, y_proba)
-    logger.info(f"Model ROC-AUC: {auc:.4f}")
+    logger.info(f"Model ROC-AUC on holdout test set: {auc:.4f}")
     print(classification_report(y_test, model.predict(X_test)))
 
     # Plot ROC curve
@@ -91,9 +91,9 @@ def main():
     ensure_dir(img_dir)
     plot_roc_curve(y_test, y_proba, save_path=os.path.join(img_dir, "roc_curve.png"))
 
-    # Run simulation on holdout set (unseen data)
+    # Run simulation on full holdout data (not just test set)
     improvement, sim_opens = six_month_simulation(
-        df_sim, model, preprocessor, features,
+        df, model, preprocessor, features,
         top_percent=config['targeting']['top_percent'],
         random_months=config['targeting']['random_initial_months'],
         total_months=config['targeting']['simulation_months'],
