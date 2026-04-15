@@ -27,20 +27,28 @@ The dataset was synthetically generated for demonstration; the methodology was a
 
 ```
 propensity_optimization/
-├── app.py                
+├── .github/
+│ └── workflows/
+│ └── retrain.yml # Weekly model retraining (GitHub Actions)
 ├── config/
+│ └── config.yaml # All configuration parameters
 ├── src/
-│   ├── __init__.py
-│   ├── data.py
-│   ├── features.py       
-│   ├── train.py
-│   ├── evaluate.py
-│   ├── predict.py
-│   └── utils.py
+│ ├── init.py
+│ ├── data.py # Data generation & preprocessing
+│ ├── features.py # Feature engineering (if any)
+│ ├── train.py # Model training (RF, XGBoost)
+│ ├── evaluate.py # Evaluation & simulation
+│ ├── predict.py # Prediction functions
+│ └── utils.py # Logging, plotting, config loading
 ├── tests/
+│ ├── test_data.py
+│ └── test_model.py
 ├── notebooks/
+│ └── propensity_educational.ipynb
+├── app.py # Streamlit dashboard
+├── api.py # FastAPI batch prediction service
 ├── requirements.txt
-├── License
+├── .gitignore
 └── README.md
 ```
 

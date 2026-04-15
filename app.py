@@ -4,7 +4,9 @@ import pandas as pd
 import mlflow
 import mlflow.tracking import MlflowClient
 import matplotlib.pyplot as plt
-imoport shap
+import shap
+import scipy.spare as sp
+from scipy.stats import chi2_contingency
 from src.data import generate_data
 from src.utils import load_config
 from src.predict import load_model, predict
@@ -79,6 +81,9 @@ if st.checkbox("Show SHAP explanations for first 5 customers"):
     sample = df[config['features']['numeric'] + config['features']['categorical']].head(5)
     # Transform with preprocessor
     X_sample = preprocessor.transform(sample)
+    # Convert to dense array if sparse
+    if sp.issparse(X_sample):
+        X_sample = X_sample.toarray()
     # Get feature names after preprocessing
     feature_names = preprocessor.get_feature_names_out()
     # Create SHAP explainer
@@ -146,4 +151,28 @@ def get_performance_history(experiment_name="Propensity_Optimzation"):
             "roc_auc": run.data.metrics.get("roc_auc", None)
         })
     return pd.DataFrame(data)
+
+if st.button("Run A/B Test Simulation"):
+    # Random sample of top 30% (control)
+    random_sample = df.sample(frac=top_percet, random_state=42)
+    # Model sample (top 30% by predicted probability)
+    model_sample = df_sorted.head(top_n)
+    # If ground truth exists, use actual opens; else use predicted probability as proxy
+    if 'opened' in df.columns:
+        control_opens = random_sample['opened'].sum()
+        model_opens = model_sample['opened'].sum()
+        control_size = len(random_sample)
+        model_size = len(model_sample)
+        # Contingency table
+        table =  [[control_opens, control_size - control_opens],[model_opens, model_size - model_opens]
+        chi2, p , dof, expected = chi2_contingency(table)
+        st.metric("Model lift", "f{(model_opens/control_opens -1):.1%}")
+        st.write(f"Chi-square p-value: {p:.4f}")
+        if p < 0.05:
+            st.sucess("Statistically significant improvement (p < 0.05)")
+        else: 
+            st.warning("Not statistically signifacnt")
+
+    else:
+        st.info("Ground truth labels not available. TRain model with historical data to run A/B test.")
 
