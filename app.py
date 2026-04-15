@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+imoport shap
 from src.data import generate_data
 from src.utils import load_config
 from src.predict import load_model, predict
@@ -47,12 +48,41 @@ X = df[config['features']['numeric'] + config['features']['categorical']]
 probs = predict(df, model, preprocessor, config)
 df['pred_open_prob'] = probs
 
+if st.checkbox("Show cost‑benefit analysis"):
+    sends = top_n
+    expected_opens = top_customers['opened'].sum() if 'opened' in df else top_customers['pred_open_prob'].sum()
+    expected_conversions = expected_opens * conversion_rate
+    revenue = expected_conversions * avg_order_value
+    cost = sends * cost_per_email
+    profit = revenue - cost
+    st.metric("Expected profit", f"${profit:,.2f}")
+    st.caption(f"Based on {sends} sends, {expected_opens:.0f} expected opens, {expected_conversions:.0f} conversions.")
+
 # Show top customers
 df_sorted = df.sort_values('pred_open_prob', ascending=False)
 top_n = int(top_percent * len(df))
 top_customers = df_sorted.head(top_n)
 
-st.subheader(f"🎯 Top {top_percent*100:.0f}% Customers Most Likely to Open")
+st.subheader("Model Explinations (SHAP)")
+if st.checkbox("Show SHAP explanations for first 5 customers"):
+    # Grab sample of data
+    sample = df[config['features']['numeric'] + config['features']['categorical']].head(5)
+    # Transform with preprocessor
+    X_sample = preprocessor.transform(sample)
+    # Get feature names after preprocessing
+    feature_names = preprocessor.get_feature_names_out()
+    # Create SHAP explainer
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(X_sample)[1] # class 1 (ope)
+    # Force plot for first customer
+    shap.initjs()
+    st.write('#### Force plot for first customer")
+        shap.force_plot(expaliner.expected_value[1], shap_value[0], X_sample[0],
+                        feature_names=feature_names, mmatplotlib=Ture, showFalse)
+        plt.savefig("shap_force.png", bbox_inches='tight')
+        st,image("shap_force.png")
+
+st.subheader(f"Top {top_percent*100:.0f}% Customers Most Likely to Open")
 st.dataframe(top_customers[['customer_id', 'pred_open_prob'] + config['features']['numeric'] + config['features']['categorical']].head(20))
 
 # If ground truth exists
@@ -85,3 +115,9 @@ if hasattr(model, 'feature_importances_'):
     importances = model.feature_importances_
     fi_df = pd.DataFrame({'feature': feature_names, 'importance': importances}).sort_values('importance', ascending=False)
     st.bar_chart(fi_df.set_index('feature'))
+
+# Cost benefit analysis 
+st.sidebar.subheader("Cost-Benefit Analysis")
+cost_per_email = st.sidebar.number_input("Cost per email sent ($)", 0.01, 1.0, 0.05, step=0.01)
+conversion_rate = st.sidebar.slider("Conversion rate (given open)", 0.0, 1.0, 0.1, 0.01)
+avg_order_value = st.sidebar.number_input("Average order value ($)", 10, 1000, 100, step=10)
