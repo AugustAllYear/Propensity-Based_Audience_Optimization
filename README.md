@@ -103,7 +103,7 @@ These features are **disabled by default** (`enabled: false` in `config/config.y
 **Train**
 
 ```bash
-    python -m src.trian
+    python -m src.train
 ```
 
 **Evaluate**
@@ -161,6 +161,13 @@ The dashboard allows you to:
 - Cost‑benefit analysis with adjustable inputs.
 - A/B test simulation with statistical significance.
 - Model performance over time (from MLflow history).
+
+### Access the services
+Streamlit dashboard – Open your browser to http://localhost:8501 (it will open automatically if Streamlit is configured, but you can manually go there).
+
+MLflow UI – Open http://localhost:5000
+
+FastAPI – Open http://localhost:8000/docs for interactive API documentation.
 
 ### Integration Notes
 - SHAP works with tree‑based models (Random Forest, XGBoost). For large datasets, SHAP is limited to the first 5 customers to maintain performance.

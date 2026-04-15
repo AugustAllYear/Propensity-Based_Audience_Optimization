@@ -57,6 +57,26 @@ def main():
         random_state=config['training']['random_state']
     )
 
+    def train_random_forest(X_train, y_train, config):
+        rf_cfg = config['model']['random_forest']
+        model = RandomForestClassifier(
+            n_estimators=rf_cfg['n_estimators'],
+            random_state=rf_cfg['random_state'],
+            class_weight=rf_cfg['class_weight']
+        )
+        model.fit(X_train, y_train)
+        return model
+
+    def train_xgboost(X_train, y_train, config):
+        xgb_cfg = config['model']['xgboost']
+        model = XGBClassifier(
+            n_estimators=xgb_cfg['n_estimators'],
+            random_state=xgb_cfg['random_state'],
+            eval_metric=xgb_cfg['eval_metric']
+        )
+        model.fit(X_train, y_train)
+        return model
+
     # Train Random Forest
     with mlflow.start_run(run_name="RandomForest_Baseline"):
         rf_cfg = config['model']['random_forest']

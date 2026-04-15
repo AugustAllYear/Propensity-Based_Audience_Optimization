@@ -31,7 +31,7 @@ def predict_single(customer: CustomerData):
 def predict_batch(customers: list[CustomerData]):
     df = pd.DataFrame([c.dict() for c in customers])
     probs = predict(df, model, preprocessor, config)
-    return {"probabilites": probs.tolist()}
+    return {"probabilities": probs.tolist()}
 
 @app.get("/health")
 def health():

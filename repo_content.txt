@@ -1,0 +1,1440 @@
+MIT License
+
+Copyright (c) [2025] [August Vollbrecht]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+# Core data science
+pandas>=1.3.0
+numpy>=1.21.0
+scikit-learn>=1.0.0
+xgboost>=1.5.0
+matplotlib>=3.4.0
+seaborn>=0.11.0
+
+# MLOps & configuration
+mlflow>=1.20.0
+joblib>=1.1.0
+pyyaml>=5.4.0
+
+# Dashboard & API
+streamlit>=1.25.0
+
+# Testing
+pytest>=6.0.0
+
+# SHAP explanations
+shap>=0.40.0
+
+# FastAPI for batch prediction API
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# For A/B test statistical calculations
+scipy>=1.9.0# Propensity‑Based Audience Optimization Configuration
+
+data:
+  n_customers: 5000
+  random_state: 42
+  sent_prob: 0.8
+
+features:
+  numeric:
+    - age
+    - income
+    - tenure
+    - last_purchase_days
+    - avg_order_value
+  categorical:
+    - campaign_channel
+    - campaign_type
+  engineering:               
+    enabled: false
+    velocity: false
+    window_hours: 1
+    z_score: true
+    rolling_fraud: false
+    window_transactions: 7
+    card_age: false
+
+model:
+  random_forest:
+    n_estimators: 100
+    random_state: 42
+    class_weight: null
+  xgboost:
+    n_estimators: 100
+    random_state: 42
+    eval_metric: logloss
+
+training:
+  test_size: 0.2
+  random_state: 42
+
+targeting:
+  top_percent: 0.3
+  simulation_months: 6
+  random_initial_months: 3
+
+paths:
+  models: models/
+  images: images/
+  data_processed: data/processed/
+
+mlflow:
+  experiment_name: Propensity_Optimization
+  tracking_uri: null
+
+dashboard:
+  title: "Propensity‑Based Audience Optimization Dashboard"
+  default_top_percent: 0.3
+  page_layout: "wide"
+  simulation_chart: true
+
+cost_benefit:
+  default_cost_per_email: 0.05
+  default_conversion_rate: 0.1
+  default_avg_order_value: 100  import pytest
+from src.train import train_random_forest, train_xgboost
+from src.data import generate_data, preprocess_data
+from src.utils import load_config
+
+def test_random_forest_training():
+    config = load_config()
+    df = generate_data(n_customers=500)
+    train_df = df[df['sent'] == 1]
+    X_train, X_test, y_train, y_test, preprocessor = preprocess_data(
+        train_df,
+        numeric_features=config['features']['numeric'],
+        categorical_features=config['features']['categorical']
+    )
+    model = train_random_forest(X_train, y_train, config)
+    assert hasattr(model, 'predict_proba')
+
+def test_xgboost_training():
+    config = load_config()
+    df = generate_data(n_customers=500)
+    train_df = df[df['sent'] == 1]
+    X_train, X_test, y_train, y_test, preprocessor = preprocess_data(
+        train_df,
+        numeric_features=config['features']['numeric'],
+        categorical_features=config['features']['categorical']
+    )
+    model = train_xgboost(X_train, y_train, config)
+    assert hasattr(model, 'predict_proba')import pytest
+from src.data import generate_data, preprocess_data
+from src.utils import load_config
+
+def test_generate_data():
+    df = generate_data(n_customers=100)
+    assert df.shape[0] == 100
+    assert 'opened' in df.columns
+    assert 'sent' in df.columns
+
+def test_preprocess_data():
+    config = load_config()
+    df = generate_data(n_customers=500)
+    train_df = df[df['sent'] == 1]
+    X_train, X_test, y_train, y_test, preprocessor = preprocess_data(
+        train_df,
+        numeric_features=config['features']['numeric'],
+        categorical_features=config['features']['categorical'],
+        test_size=0.2
+    )
+    assert X_train.shape[0] == len(y_train)
+    assert X_test.shape[0] == len(y_test)#!/bin/bash
+# Full pipeline runner for Propensity-Based Audience Optimization
+# Prerequisite: Activate your virtual environment before running (e.g., `pyenv activate Propensity_venv`)
+
+set -e  # exit on error
+
+echo "Starting Propensity Optimization Pipeline"
+
+# Verify environment is active
+if [ -z "$VIRTUAL_ENV" ]; then
+    echo "Warning: No virtual environment detected. Please activate your environment first."
+    echo "Example: pyenv activate Propensity_venv"
+    exit 1
+fi
+
+# Train models
+echo "Training models..."
+python -m src.train
+
+# Evaluate and run simulation
+echo "Evaluating model and running simulation..."
+python -m src.evaluate
+
+# Run tests
+echo "Running tests..."
+pytest tests/ -v
+
+# Start MLflow UI in background
+echo "Starting MLflow UI at http://localhost:5000"
+mlflow ui --backend-store-uri ./mlruns --port 5000 &
+MLFLOW_PID=$!
+
+# Start FastAPI in background
+echo "Starting FastAPI at http://localhost:8000"
+uvicorn api:app --host 0.0.0.0 --port 8000 &
+API_PID=$!
+
+# Start Streamlit dashboard
+echo "Starting Streamlit dashboard at http://localhost:8501"
+streamlit run app.py --server.port 8501
+
+# Cleanup on exit
+trap "kill $MLFLOW_PID $API_PID" EXIT# Propensity‑Based Audience Optimization
+
+## Project Overview
+This project develops a machine learning model to optimize email marketing campaigns. By predicting which customers are most likely to engage (open an email), the marketing team can target a smaller, higher‑potential audience, increasing overall reach while keeping send volume constant. The solution is replicable and can be integrated into a monthly campaign workflow.
+
+## Business Problem
+The company historically sent campaigns to its entire customer database, resulting in low open rates and wasted marketing spend. The goal was to increase the number of opens by **25% within six months** without increasing send volume.
+
+## Data
+Historical campaign data includes:
+- **Customer demographics**: age, income, tenure (months), days since last purchase, average order value
+- **Campaign attributes**: channel (email, social, push), type (promotional, informational, loyalty)
+- **Engagement flag**: whether the customer opened the email (target variable)
+
+The dataset is synthetically generated for demonstration; the methodology was applied to real customer data.
+
+## Methodology
+1. **Exploratory Data Analysis** – Visualised feature distributions and relationships with the target.
+2. **Preprocessing** – Scaled numerical features and one‑hot encoded categorical variables.
+3. **Modeling** – Trained a Random Forest classifier (baseline), tuned hyperparameters with GridSearchCV, and compared with XGBoost.
+4. **Evaluation** – Used ROC‑AUC, precision, recall, and business‑oriented simulations.
+5. **Simulation** – Compared random targeting with model‑based targeting over six months to quantify business impact.
+
+**MLflow Tracking**: All experiments are automatically logged to the local `mlruns/` directory. Run `mlflow ui` to explore.
+
+## Project Structure
+
+```
+propensity_optimization/
+├── .github/workflows/
+│ └── retrain.yml # Weekly model retraining (GitHub Actions)
+├── config/
+│ └── config.yaml # All configuration parameters
+├── src/
+│ ├── init.py
+│ ├── data.py # Data generation & preprocessing
+│ ├── features.py 
+│ ├── train.py # Model training (RF, XGBoost)
+│ ├── evaluate.py # Evaluation & simulation
+│ ├── predict.py # Prediction functions
+│ └── utils.py # Logging, plotting, config loading
+├── tests/
+│ ├── test_data.py
+│ └── test_model.py
+├── notebooks/
+│ └── propensity_educational.ipynb
+├── app.py # Streamlit dashboard
+├── api.py # FastAPI batch prediction service
+├── requirements.txt
+├── .gitignore
+└── README.md
+```
+
+## Results
+- **Most important feature**: `last_purchase_days` (recency)
+- **Targeting top 30%** captures ~68% of all potential opens.
+- **Six‑month simulation** shows a **25% increase** in cumulative opens after switching from random to model‑based targeting.
+- **ROC‑AUC improved** from 0.781 (baseline) to 0.794 (tuned Random Forest); XGBoost achieved 0.782.
+
+
+## Setup
+
+### Prerequisites
+- Python 3.11
+- Git
+
+### Installation
+```bash
+    git clone https://github.com/yourusername/propensity_optimization.git
+    cd propensity_optimization
+    python -m venv venv
+    source venv/bin/activate   # Windows: venv\Scripts\activate
+    pip install -r requirements.txt
+```
+
+### Configuration
+
+All parameters are centralised in `config/config.yaml`. You can adjust data size, model hyperparameters, targeting thresholds, cost‑benefit defaults, and simulation settings without touching the code.
+
+### Optional Feature Engineering
+
+The codebase includes advanced feature engineering functions (`src/features.py`) that can generate additional predictors such as:
+
+- **Transaction velocity** (rolling count per user over time)
+- **Amount z‑score** (per‑user standardised transaction amount)
+- **Rolling fraud rate** (if historical fraud labels exist)
+- **Card age** (days since card issuance)
+
+These features are **disabled by default** (`enabled: false` in `config/config.yaml` under `features.engineering`) because the synthetic data lacks the necessary columns (`timestamp`, `user_id`, `card_issue_date`, `is_fraud`). To enable them for your own dataset, set `enabled: true` and ensure your data includes the required columns. See `src/features.py` for implementation details.
+
+
+### Usage
+
+#### Evaluation, Train and run simulation
+```
+    from src.predict import load_model, predict
+    import pandas as pd
+    model, preprocessor = load_model()
+    new_data = pd.read_csv("new_customers.csv")
+    probs = predict(new_data, model, preprocessor, config)
+```
+
+**Train**
+
+```bash
+    python -m src.trian
+```
+
+**Evaluate**
+
+```bash
+    python -m src.evaluate
+```
+
+**Predict**
+
+```bash
+    src.predict.predict()
+```
+
+*New data*
+```python
+    from src.predict import load_model, predict
+    import pandas as pd
+    model, preprocessor = load_model()
+    new_data = pd.read_csv("new_customers.csv")
+    probs = predict(new_data, model, preprocessor, config)
+```
+
+#### Run tests
+```bash
+    pytest tests/
+```
+
+#### Launch Dashboard
+
+After training the models (`python -m src.train`), launch the interactive dashboard:
+
+```bash
+streamlit run dashboard.py
+```
+
+#### Start Prediction API
+```bash
+    uvicorn api:app --reload --port 8000
+```
+
+#### MLflow UI
+```bash
+    mlflow ui
+```
+
+### Dashboard Features
+
+The dashboard allows you to:
+- Upload customer CSV or use synthetic data.
+- Score customers and see top X% most likely to open.
+- View six‑month simulation chart (if ground truth exists).
+- SHAP explanations for individual predictions.
+- Feature importance bar chart.
+- Cost‑benefit analysis with adjustable inputs.
+- A/B test simulation with statistical significance.
+- Model performance over time (from MLflow history).
+
+### Access the services
+Streamlit dashboard – Open your browser to http://localhost:8501 (it will open automatically if Streamlit is configured, but you can manually go there).
+
+MLflow UI – Open http://localhost:5000
+
+FastAPI – Open http://localhost:8000/docs for interactive API documentation.
+
+### Integration Notes
+- SHAP works with tree‑based models (Random Forest, XGBoost). For large datasets, SHAP is limited to the first 5 customers to maintain performance.
+- FastAPI is free and open‑source. Run it alongside the dashboard for batch predictions.
+- GitHub Actions (.github/workflows/retrain.yml) retrains the model every Sunday. For real data, adapt src/train.py to load from a fixed location (e.g., S3, database) and use secrets for credentials.
+- MLflow performance chart requires logged runs with experiment name Propensity_Optimization. It will be empty until you train at least once.
+- Cost‑benefit defaults are stored in config/config.yaml under the cost_benefit section.
+
+### Production Considerations
+1. Model Registry – Use MLflow Model Registry to promote models from staging to production.
+
+2. Automated Retraining – Schedule src/train.py weekly (already set up via GitHub Actions).
+
+3. Data Validation – Implement schema checks (column names, types) before training/prediction.
+
+4. Secrets Management – Never hardcode API keys; use environment variables or a secrets manager.
+
+5. Monitoring – Track prediction drift (PSI) and model performance (ROC‑AUC) over time; set alerts for degradation.
+
+6. Deployment – Package the model as a REST API (FastAPI) for real‑time scoring; the dashboard is for batch exploration only.
+
+### FastAPI Prediction Service
+The API (`api.py`) runs independently of the dashboard. To use it:
+1. Train the model first: `python -m src.train`
+2. Start the server: `uvicorn api:app --reload --port 8000`
+3. Send POST requests to `/predict` (single) or `/predict_batch` (multiple).
+
+The API is free and open‑source. You can deploy it on any cloud platform (e.g., Heroku, AWS, GCP) or run locally.
+
+### Cost‑Benefit Defaults
+Default values for cost per email, conversion rate, and average order value are stored in `config/config.yaml` under the `cost_benefit` section. Users can override them in the dashboard sidebar.
+
+## Production Considerations
+
+1. **Model Registry**: Use MLflow Model Registry to manage model versions (stage "Staging" → "Production").
+2. **Automated Retraining**: Schedule `src/train.py` weekly via cron or GitHub Actions.
+3. **Data Validation**: Implement schema checks (column names, types) before training/prediction – see `src/data.py`.
+4. **Secrets Management**: Never hardcode API keys or database URIs; use environment variables or a secrets manager.
+5. **Monitoring**: Track prediction drift (PSI) and model performance (ROC‑AUC) over time. Set alerts for degradation.
+6. **Deployment**: Package the model as a REST API (FastAPI) for real‑time scoring. The dashboard is for batch exploration only.
+    
+## Continuation and Refinement Suggestions
+- **A/B Test the Model**: Run a live experiment comparing the model’s top 30% against a random 30% control group to validate the lift.
+- **Feature Engineering**: Incorporate additional features such as customer lifetime value, previous campaign engagement history (e.g., number of opens in last 3 months), time‑based features (day of week, season), and average response time.
+- **Model Improvement**: Experiment with LightGBM, deeper hyperparameter tuning, or ensemble methods.
+- **Automate Retraining**: Set up a scheduled pipeline (e.g., monthly) that ingests new campaign data, retrains the model, and updates the scoring system.
+- **Deployment**: Package the model as a REST API using FastAPI, and integrate with marketing automation platforms (e.g., Salesforce Marketing Cloud, Braze).
+- **Monitoring**: Track model performance drift over time and set up alerts if ROC‑AUC drops below a threshold.
+
+**CI/CD**: Recommended platforms include GitHub Actions, GitLab GitHub Actions is used for CI/CD (free for public/private repos up to limits). If data files exceed 14GB, consider upgrading to cloud storage (e.g., S3) and triggering jobs externally.
+
+## Related Project: Sentinel_AI Fraud Detection
+
+This project inspired and was adapted to Sentinel_AI, an end‑to‑end fraud detection system. Both share the same production‑ready architecture: configuration‑driven scripts, MLflow tracking, GitHub Actions CI/CD, and a Streamlit dashboard.
+
+## License
+MIT
+
+## Contact
+For questions, contact August Vollbrecht at augustvollbrecht@gmail.comfrom fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import pandas as pd
+import numpy as np
+from src.predict import load_model, predict
+from src.utils import load_config
+
+app = FastAPI(title="Propensity Prediction API")
+config = load_config()
+model, preprocessor = load_model()
+
+class  CustomerData(BaseModel):
+    age: int
+    income: int
+    tenure: int
+    last_purchase_days: int
+    avg_order_value: int
+    campaign_channel: str
+    campaign_type: str
+
+class PredictionResponse(BaseModel):
+    open_probability: float
+
+@app.post("/predict", response_model=PredictionResponse)
+def predict_single(customer: CustomerData):
+    df = pd.DataFrame([customer.dict()])
+    prob = predict(df, model, preprocessor, config)[0]
+    return {"open_probability": float(prob)}
+
+@app.post("/predict_batch")
+def predict_batch(customers: list[CustomerData]):
+    df = pd.DataFrame([c.dict() for c in customers])
+    probs = predict(df, model, preprocessor, config)
+    return {"probabilites": probs.tolist()}
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}# app.py
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import shap
+import scipy.sparse as sp
+from scipy.stats import chi2_contingency
+from mlflow.tracking import MlflowClient
+from src.data import generate_data
+from src.utils import load_config
+from src.predict import load_model, predict
+from src.evaluate import six_month_simulation
+
+# Load config
+config = load_config()
+
+# Dashboard config
+dashboard_cfg = config.get('dashboard', {})
+
+st.set_page_config(
+    page_title=dashboard_cfg.get('title', "Propensity Dashboard"),
+    layout=dashboard_cfg.get('page_layout', 'wide')
+)
+
+st.title("Propensity‑Based Audience Optimization Dashboard")
+
+# Load model and preprocessor
+model, preprocessor = load_model()
+
+# Sidebar
+st.sidebar.header("Options")
+data_source = st.sidebar.selectbox("Data Source", ["Synthetic Demo", "Upload CSV"])
+default_top = dashboard_cfg.get('default_top_percent', config['targeting']['top_percent'])
+top_percent = st.sidebar.slider("Top % to target", 0.1, 0.5, default_top, 0.05)
+
+# Cost-benefit inputs (from config - user update in config)
+cost_cfg = config.get('cost_benefit', {})
+default_cost = cost_cfg.get('default_cost_per_email', 0.05)
+default_conversion = cost_cfg.get('default_conversion_rate', 0.1)
+default_avg_order = cost_cfg.get('default_avg_order_value', 100)
+
+st.sidebar.subheader("Cost‑Benefit Analysis")
+cost_per_email = st.sidebar.number_input("Cost per email sent ($)", 0.01, 1.0, default_cost, step=0.01)
+conversion_rate = st.sidebar.slider("Conversion rate (given open)", 0.0, 1.0, default_conversion, 0.01)
+avg_order_value = st.sidebar.number_input("Average order value ($)", 10, 1000, default_avg_order, step=10)
+
+# Load data
+if data_source == "Upload CSV":
+    uploaded_file = st.sidebar.file_uploader("Upload customer data (CSV)", type="csv")
+    if uploaded_file:
+        df = pd.read_csv(uploaded_file)
+    else:
+        st.warning("Please upload a file")
+        st.stop()
+else:
+    df = generate_data(
+        n_customers=config['data']['n_customers'],
+        random_state=config['data']['random_state'],
+        sent_prob=config['data']['sent_prob']
+    )
+
+# Predict
+X = df[config['features']['numeric'] + config['features']['categorical']]
+probs = predict(df, model, preprocessor, config)
+df['pred_open_prob'] = probs
+
+# Sort and get top customers
+df_sorted = df.sort_values('pred_open_prob', ascending=False)
+top_n = int(top_percent * len(df))
+top_customers = df_sorted.head(top_n)
+
+st.subheader(f"Top {top_percent*100:.0f}% Customers Most Likely to Open")
+st.dataframe(top_customers[['customer_id', 'pred_open_prob'] + config['features']['numeric'] + config['features']['categorical']].head(20))
+
+# If ground truth exists
+if 'opened' in df.columns:
+    actual_opens_full = df['opened'].sum()
+    actual_opens_top = top_customers['opened'].sum()
+    st.metric("Opens captured in top %", f"{actual_opens_top}/{actual_opens_full} ({actual_opens_top/actual_opens_full:.1%})")
+
+    # Six‑month simulation
+    sim_opens = six_month_simulation(
+        df, model, preprocessor,
+        config['features']['numeric'] + config['features']['categorical'],
+        top_percent=config['targeting']['top_percent'],
+        random_months=config['targeting']['random_initial_months'],
+        total_months=config['targeting']['simulation_months']
+    )
+    fig, ax = plt.subplots()
+    ax.plot(range(1, len(sim_opens)+1), sim_opens, marker='o')
+    ax.axvline(x=config['targeting']['random_initial_months']+0.5, linestyle='--', color='gray')
+    ax.set_xlabel("Month")
+    ax.set_ylabel("Opens")
+    ax.set_title("Six‑Month Simulation")
+    ax.grid(True)
+    st.pyplot(fig)
+
+# Cost-benefit analysis (if ground truth or predicted)
+if st.checkbox("Show cost‑benefit analysis"):
+    sends = top_n
+    expected_opens = top_customers['opened'].sum() if 'opened' in df else top_customers['pred_open_prob'].sum()
+    expected_conversions = expected_opens * conversion_rate
+    revenue = expected_conversions * avg_order_value
+    cost = sends * cost_per_email
+    profit = revenue - cost
+    st.metric("Expected profit", f"${profit:,.2f}")
+    st.caption(f"Based on {sends} sends, {expected_opens:.0f} expected opens, {expected_conversions:.0f} conversions.")
+
+# SHAP explanations
+st.subheader("Model Explanations (SHAP)")
+if st.checkbox("Show SHAP explanations for first 5 customers"):
+    sample = df[config['features']['numeric'] + config['features']['categorical']].head(5)
+    X_sample = preprocessor.transform(sample)
+    if sp.issparse(X_sample):
+        X_sample = X_sample.toarray()
+    feature_names = preprocessor.get_feature_names_out()
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(X_sample)[1]  # class 1 (open)
+    shap.initjs()
+    st.write("#### Force plot for first customer")
+    shap.force_plot(explainer.expected_value[1], shap_values[0], X_sample[0],
+                    feature_names=feature_names, matplotlib=True, show=False)
+    plt.savefig("shap_force.png", bbox_inches='tight')
+    st.image("shap_force.png")
+
+# Feature importance
+if hasattr(model, 'feature_importances_'):
+    st.subheader("Feature Importances")
+    feature_names = config['features']['numeric'] + config['features']['categorical']
+    importances = model.feature_importances_
+    fi_df = pd.DataFrame({'feature': feature_names, 'importance': importances}).sort_values('importance', ascending=False)
+    st.bar_chart(fi_df.set_index('feature'))
+
+# Model performance over time
+def get_performance_history(experiment_name="Propensity_Optimization"):
+    client = MlflowClient()
+    experiment = client.get_experiment_by_name(experiment_name)
+    if not experiment:
+        return pd.DataFrame()
+    runs = client.search_runs(experiment.experiment_id, order_by=["start_time ASC"])
+    data = []
+    for run in runs:
+        data.append({
+            "date": run.info.start_time,
+            "run_name": run.data.tags.get("mlflow.runName", "unknown"),
+            "roc_auc": run.data.metrics.get("roc_auc", None)
+        })
+    return pd.DataFrame(data)
+
+if st.checkbox("Show model performance over time"):
+    perf_df = get_performance_history()
+    if not perf_df.empty:
+        st.line_chart(perf_df.set_index("date")["roc_auc"])
+    else:
+        st.info("No MLflow runs found. Train a model first.")
+
+# A/B test simulation
+if st.button("Run A/B Test Simulation"):
+    random_sample = df.sample(frac=top_percent, random_state=42)
+    model_sample = df_sorted.head(top_n)
+    if 'opened' in df.columns:
+        control_opens = random_sample['opened'].sum()
+        model_opens = model_sample['opened'].sum()
+        control_size = len(random_sample)
+        model_size = len(model_sample)
+        table = [[control_opens, control_size - control_opens],
+                 [model_opens, model_size - model_opens]]
+        chi2, p, dof, expected = chi2_contingency(table)
+        st.metric("Model lift", f"{(model_opens/control_opens - 1):.1%}")
+        st.write(f"Chi‑square p‑value: {p:.4f}")
+        if p < 0.05:
+            st.success("Statistically significant improvement (p < 0.05)")
+        else:
+            st.warning("Not statistically significant")
+    else:
+        st.info("Ground truth labels not available. Train model with historical data to run A/B test."){
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Propensity‑Based Audience Optimization\n",
+    "## Predictive modeling, hyperparameter tuning, and business impact\n",
+    "\n",
+    "This notebook demonstrates an end‑to‑end workflow for email campaign optimization:\n",
+    "- Predict which customers are most likely to open an email.\n",
+    "- Target only the top 30% of customers by predicted probability.\n",
+    "- Increase overall reach (number of opens) without increasing send volume.\n",
+    "- Compare Random Forest vs XGBoost and tune hyperparameters.\n",
+    "- Log experiments with MLflow.\n",
+    "- Simulate six‑month improvement.\n",
+    "\n",
+    "**Business goal:** Increase audience reach by 25% within six months while keeping total campaign volume constant."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 1. Data Generation & Exploratory Analysis"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "import seaborn as sns\n",
+    "import os\n",
+    "import mlflow\n",
+    "import mlflow.sklearn\n",
+    "from sklearn.model_selection import train_test_split, GridSearchCV\n",
+    "from sklearn.ensemble import RandomForestClassifier\n",
+    "from sklearn.metrics import roc_auc_score, classification_report, roc_curve, precision_recall_curve\n",
+    "from sklearn.preprocessing import StandardScaler, OneHotEncoder\n",
+    "from sklearn.compose import ColumnTransformer\n",
+    "from sklearn.pipeline import Pipeline\n",
+    "from xgboost import XGBClassifier\n",
+    "\n",
+    "%matplotlib inline\n",
+    "os.makedirs(\"images\", exist_ok=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Generate synthetic data (reproducible)\n",
+    "np.random.seed(42)\n",
+    "n_customers = 5000\n",
+    "data = {\n",
+    "    'customer_id': range(1, n_customers+1),\n",
+    "    'age': np.random.randint(18, 70, n_customers),\n",
+    "    'income': np.random.normal(50000, 15000, n_customers).astype(int),\n",
+    "    'tenure': np.random.randint(1, 120, n_customers),\n",
+    "    'last_purchase_days': np.random.randint(1, 365, n_customers),\n",
+    "    'avg_order_value': np.random.normal(100, 30, n_customers).clip(20, 300).astype(int),\n",
+    "    'campaign_channel': np.random.choice(['email', 'social', 'push'], n_customers),\n",
+    "    'campaign_type': np.random.choice(['promotional', 'informational', 'loyalty'], n_customers),\n",
+    "    'sent': np.random.choice([0,1], n_customers, p=[0.2,0.8]),\n",
+    "}\n",
+    "df = pd.DataFrame(data)\n",
+    "\n",
+    "# Generate target with realistic pattern\n",
+    "def generate_opened(row):\n",
+    "    prob = 0.1\n",
+    "    if row['last_purchase_days'] < 60:\n",
+    "        prob += 0.2\n",
+    "    if row['income'] > 60000:\n",
+    "        prob += 0.1\n",
+    "    if row['campaign_channel'] == 'email':\n",
+    "        prob += 0.15\n",
+    "    if row['campaign_type'] == 'promotional':\n",
+    "        prob += 0.1\n",
+    "    prob = min(prob, 0.9)\n",
+    "    return np.random.binomial(1, prob)\n",
+    "\n",
+    "df['opened'] = df.apply(generate_opened, axis=1)\n",
+    "print(f\"Opened rate: {df['opened'].mean():.2%}\")\n",
+    "df.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Quick EDA: recency and income by open status\n",
+    "fig, axes = plt.subplots(1,2, figsize=(12,4))\n",
+    "sns.boxplot(x='opened', y='last_purchase_days', data=df, ax=axes[0])\n",
+    "axes[0].set_title('Days since last purchase')\n",
+    "sns.boxplot(x='opened', y='income', data=df, ax=axes[1])\n",
+    "axes[1].set_title('Income')\n",
+    "plt.tight_layout()\n",
+    "plt.savefig('images/eda.png', bbox_inches='tight')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 2. Baseline Random Forest Model\n",
+    "\n",
+    "We use a pipeline with scaling and one‑hot encoding, then train a Random Forest classifier."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Prepare data\n",
+    "train_df = df[df['sent']==1].copy()\n",
+    "features = ['age', 'income', 'tenure', 'last_purchase_days', 'avg_order_value', \n",
+    "            'campaign_channel', 'campaign_type']\n",
+    "X = train_df[features]\n",
+    "y = train_df['opened']\n",
+    "\n",
+    "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)\n",
+    "\n",
+    "# Preprocessor\n",
+    "numeric_features = ['age', 'income', 'tenure', 'last_purchase_days', 'avg_order_value']\n",
+    "categorical_features = ['campaign_channel', 'campaign_type']\n",
+    "preprocessor = ColumnTransformer([\n",
+    "    ('num', StandardScaler(), numeric_features),\n",
+    "    ('cat', OneHotEncoder(drop='first'), categorical_features)\n",
+    "])\n",
+    "\n",
+    "# Pipeline\n",
+    "pipeline = Pipeline([\n",
+    "    ('preprocessor', preprocessor),\n",
+    "    ('classifier', RandomForestClassifier(n_estimators=100, random_state=42))\n",
+    "])\n",
+    "\n",
+    "pipeline.fit(X_train, y_train)\n",
+    "y_proba = pipeline.predict_proba(X_test)[:, 1]\n",
+    "auc_baseline = roc_auc_score(y_test, y_proba)\n",
+    "print(f\"Baseline Random Forest ROC-AUC: {auc_baseline:.4f}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 3. Feature Importance\n",
+    "\n",
+    "Recency (`last_purchase_days`) is the strongest predictor."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "feature_names = (numeric_features + \n",
+    "                 list(pipeline.named_steps['preprocessor']\n",
+    "                      .named_transformers_['cat']\n",
+    "                      .get_feature_names_out(categorical_features)))\n",
+    "importances = pipeline.named_steps['classifier'].feature_importances_\n",
+    "feat_imp = pd.Series(importances, index=feature_names).sort_values(ascending=False)\n",
+    "\n",
+    "plt.figure(figsize=(10,6))\n",
+    "feat_imp.plot(kind='bar')\n",
+    "plt.title('Feature Importances')\n",
+    "plt.tight_layout()\n",
+    "plt.savefig('images/feature_importances.png', bbox_inches='tight')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 4. Targeting Strategy: Top 30% Selection\n",
+    "\n",
+    "Scoring all customers and selecting the top 30% captures about 68% of all opens."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X_all = df[features]\n",
+    "df['pred_prob'] = pipeline.predict_proba(X_all)[:, 1]\n",
+    "top30 = df.sort_values('pred_prob', ascending=False).head(int(0.3 * len(df)))\n",
+    "opens_captured = top30['opened'].sum() / df['opened'].sum()\n",
+    "print(f\"Top 30% captures {opens_captured:.2%} of all opens\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 5. Six‑Month Simulation\n",
+    "\n",
+    "Simulate 6 campaigns: first 3 months random targeting, next 3 months model‑based targeting. The model increases cumulative opens by ~25%."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "months = 6\n",
+    "cumulative_opens = []\n",
+    "strategy = ['random'] * 3 + ['model'] * 3\n",
+    "\n",
+    "for month in range(months):\n",
+    "    month_data = df.sample(frac=1, replace=False).reset_index(drop=True)\n",
+    "    if strategy[month] == 'random':\n",
+    "        selected = month_data.sample(frac=0.3, random_state=month)\n",
+    "    else:\n",
+    "        X_month = month_data[features]\n",
+    "        month_data['pred_prob'] = pipeline.predict_proba(X_month)[:, 1]\n",
+    "        selected = month_data.sort_values('pred_prob', ascending=False).head(int(0.3 * len(month_data)))\n",
+    "    cumulative_opens.append(selected['opened'].sum())\n",
+    "\n",
+    "plt.figure(figsize=(8,5))\n",
+    "plt.plot(range(1, months+1), cumulative_opens, marker='o')\n",
+    "plt.axvline(x=3.5, linestyle='--', color='gray', label='Model starts')\n",
+    "plt.xlabel('Month'); plt.ylabel('Opens'); plt.title('Cumulative Reach')\n",
+    "plt.legend(); plt.grid(True)\n",
+    "plt.savefig('images/simulation.png', bbox_inches='tight')\n",
+    "plt.show()\n",
+    "\n",
+    "improvement = (sum(cumulative_opens[3:]) / sum(cumulative_opens[:3]) - 1) * 100\n",
+    "print(f\"Improvement: {improvement:.1f}%\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 6. Hyperparameter Tuning with GridSearchCV\n",
+    "\n",
+    "We tune Random Forest parameters to potentially improve ROC‑AUC. The best model is logged with MLflow."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Parameter grid\n",
+    "param_grid = {\n",
+    "    'classifier__n_estimators': [50, 100, 150],\n",
+    "    'classifier__max_depth': [10, 20, None],\n",
+    "    'classifier__min_samples_split': [5, 10, 15]\n",
+    "}\n",
+    "\n",
+    "grid_search = GridSearchCV(pipeline, param_grid, cv=5, scoring='roc_auc', n_jobs=-1, verbose=1)\n",
+    "grid_search.fit(X_train, y_train)\n",
+    "best_rf = grid_search.best_estimator_\n",
+    "best_auc = roc_auc_score(y_test, best_rf.predict_proba(X_test)[:, 1])\n",
+    "print(f\"Best parameters: {grid_search.best_params_}\")\n",
+    "print(f\"Tuned Random Forest ROC-AUC: {best_auc:.4f}\")\n",
+    "\n",
+    "# Log with MLflow\n",
+    "mlflow.set_experiment(\"Propensity_Optimization\")\n",
+    "with mlflow.start_run(run_name=\"Tuned_RandomForest\"):\n",
+    "    mlflow.log_params(grid_search.best_params_)\n",
+    "    mlflow.log_metric(\"roc_auc\", best_auc)\n",
+    "    mlflow.sklearn.log_model(best_rf, \"model\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 7. XGBoost Model Comparison\n",
+    "\n",
+    "XGBoost often outperforms Random Forest on tabular data. We train a simple XGBoost model with the same preprocessing and compare."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "xgb_pipeline = Pipeline([\n",
+    "    ('preprocessor', preprocessor),\n",
+    "    ('classifier', XGBClassifier(n_estimators=100, random_state=42, eval_metric='logloss'))\n",
+    "])\n",
+    "xgb_pipeline.fit(X_train, y_train)\n",
+    "xgb_auc = roc_auc_score(y_test, xgb_pipeline.predict_proba(X_test)[:, 1])\n",
+    "print(f\"XGBoost ROC-AUC: {xgb_auc:.4f}\")\n",
+    "\n",
+    "with mlflow.start_run(run_name=\"XGBoost_Baseline\"):\n",
+    "    mlflow.log_metric(\"roc_auc\", xgb_auc)\n",
+    "    mlflow.sklearn.log_model(xgb_pipeline, \"model\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 8. Model Performance Summary\n",
+    "\n",
+    "| Model | ROC‑AUC |\n",
+    "|-------|---------|\n",
+    "| Baseline Random Forest | 0.781 |\n",
+    "| Tuned Random Forest | 0.794 |\n",
+    "| XGBoost | 0.782 |\n",
+    "\n",
+    "The tuned Random Forest performs best. However, the business lift (25% increase in cumulative opens) is driven by ranking quality, which is already good in the baseline model. Hyperparameter tuning provides a marginal gain but may not justify extra complexity in production."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 9. Business Impact & Next Steps\n",
+    "\n",
+    "**Business impact:**\n",
+    "- 25% increase in cumulative opens over six months with same send volume.\n",
+    "- 70% reduction in send volume to achieve ~68% of opens.\n",
+    "- Cost savings or reallocation of budget.\n",
+    "\n",
+    "**Next steps for production:**\n",
+    "1. **A/B test** the model's top 30% against random 30% control.\n",
+    "2. **Automate retraining** monthly using new campaign data.\n",
+    "3. **Add features** like customer lifetime value, previous engagement counts.\n",
+    "4. **Deploy as API** (FastAPI) integrated with marketing automation platforms.\n",
+    "5. **Monitor drift** (ROC‑AUC over time) and alert on degradation.\n",
+    "\n",
+    "The `Modeling_experimentation.ipynb` notebook (now merged here) demonstrated that tuning improves ROC‑AUC slightly, but the core value comes from the targeting strategy itself."
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.11.9"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}
+"""Predict open probability for new customers."""
+
+import pandas as pd
+import joblib
+import os
+from src.utils import load_config
+
+def load_model(model_path=None, preprocessor_path=None):
+    """Load trained model and preprocessor from paths (or defaults from config)."""
+    config = load_config()
+    if model_path is None:
+        model_path = os.path.join(config['paths']['models'], "random_forest.joblib")
+    if preprocessor_path is None:
+        preprocessor_path = os.path.join(config['paths']['models'], "preprocessor.joblib")
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(
+            f"Model not found at {model_path}. Please run `python -m src.train` first."
+        )
+    model = joblib.load(model_path)
+    preprocessor = joblib.load(preprocessor_path)
+    return model, preprocessor
+
+def predict(new_data: pd.DataFrame, model, preprocessor, config):
+    """
+    Predict open probabilities for new customers.
+    
+    Args:
+        new_data: DataFrame with same columns as training data.
+        model: Trained classifier (Random Forest or XGBoost).
+        preprocessor: Fitted ColumnTransformer.
+        config: Loaded configuration dictionary.
+    
+    Returns:
+        Array of predicted probabilities (0 to 1).
+    """
+    features = config['features']['numeric'] + config['features']['categorical']
+    # Ensure required columns exist
+    missing = set(features) - set(new_data.columns)
+    if missing:
+        raise ValueError(f"Missing columns: {missing}")
+    X = new_data[features]
+    X_transformed = preprocessor.transform(X)
+    probs = model.predict_proba(X_transformed)[:, 1]
+    return probs
+
+if __name__ == "__main__":
+    # Quick test: generate synthetic data and predict
+    from src.data import generate_data
+    config = load_config()
+    df = generate_data(n_customers=100)
+    model, preprocessor = load_model()
+    probs = predict(df, model, preprocessor, config)
+    print("Sample probabilities:", probs[:5])"""Feature engineering to improve performance, domain specificity, and prevent data leakage."""
+
+import pandas as pd
+import numpy as np
+
+def add_velocity_features(df: pd.DataFrame, time_col='timestamp', id_col='user_id', window_hours=1):
+    """
+    Add rolling transaction count per user within the last `window_hours`.
+    Requires datetime column.
+    """
+    df = df.sort_values([id_col, time_col]).copy()
+    df[time_col] = pd.to_datetime(df[time_col])
+    df['tx_rolling'] = (
+        df.groupby(id_col)[time_col]
+        .transform(lambda x: x.rolling(window=f'{window_hours}h', closed='both').count())
+    )
+    return df
+
+def add_amount_z_score(df: pd.DataFrame, amount_col='amount', id_col='user_id'):
+    """Z-score of transaction amount per user."""
+    df['amount_z_score'] = df.groupby(id_col)[amount_col].transform(
+        lambda x: (x - x.mean()) / x.std() if x.std() != 0 else 0
+    )
+    return df
+
+def add_rolling_fraud_rate(df: pd.DataFrame, label_col='is_fraud', timestamp_col='timestamp', id_col='user_id', window=7):
+    """
+    Rolling fraud rate per user over a specific transaction window.
+    """
+    df = df.sort_values([id_col, timestamp_col]).copy()
+    df['rolling_fraud_rate'] = (
+        df.groupby(id_col)[label_col]
+        .transform(lambda x: x.rolling(window=window, min_periods=1).mean())
+    )
+    return df
+
+def add_card_age(df: pd.DataFrame, card_issue_date_col='card_issue_date', ref_date=None):
+    """Days since card was issued."""
+    if ref_date is None:
+        ref_date = pd.Timestamp.now()
+    df['card_age_days'] = (ref_date - pd.to_datetime(df[card_issue_date_col])).dt.days
+    return df
+
+def engineer_features(df: pd.DataFrame, config: dict = None):
+    """
+    Apply feature engineering based on configuration.
+    config keys: velocity (bool, window_hours), z_score (bool),
+                 rolling_fraud (bool, window), card_age (bool)
+    """
+    if config is None:
+        # Default: only z_score enabled (matches original model)
+        config = {'velocity': False, 'z_score': True, 'rolling_fraud': False, 'card_age': False}
+
+    if 'timestamp' in df.columns and config.get('velocity', False):
+        window_hours = config.get('window_hours', 1)
+        df = add_velocity_features(df, window_hours=window_hours)
+    if config.get('z_score', False):
+        df = add_amount_z_score(df)
+    if config.get('rolling_fraud', False) and 'timestamp' in df.columns:
+        window = config.get('window_transactions', 7)
+        df = add_rolling_fraud_rate(df, window=window)
+    if config.get('card_age', False) and 'card_issue_date' in df.columns:
+        df = add_card_age(df)
+
+    return df"""Utility functions for logging, plotting, config loading."""
+
+import os
+import logging
+import yaml
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import roc_curve, auc, confusion_matrix
+
+def setup_logging(level=logging.INFO):
+    logging.basicConfig(level=level, format='%(asctime)s - %(levelname)s - %(message)s')
+    return logging.getLogger(__name__)
+
+def load_config(config_path="config/config.yaml"):
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+    return config
+
+def ensure_dir(path):
+    os.makedirs(path, exist_ok=True)
+
+def plot_roc_curve(y_true, y_proba, save_path=None):
+    fpr, tpr, _ = roc_curve(y_true, y_proba)
+    roc_auc = auc(fpr, tpr)
+    plt.figure()
+    plt.plot(fpr, tpr, label=f'ROC curve (AUC = {roc_auc:.3f})')
+    plt.plot([0,1], [0,1], 'k--')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic')
+    plt.legend()
+    if save_path:
+        ensure_dir(os.path.dirname(save_path))
+        plt.savefig(save_path)
+        plt.close()
+    else:
+        plt.show()
+
+def plot_confusion_matrix(y_true, y_pred, save_path=None):
+    cm = confusion_matrix(y_true, y_pred)
+    plt.figure()
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    plt.xlabel('Predicted')
+    plt.ylabel('Actual')
+    plt.title('Confusion Matrix')
+    if save_path:
+        ensure_dir(os.path.dirname(save_path))
+        plt.savefig(save_path)
+        plt.close()
+    else:
+        plt.show()"""Train fraud detection model (RandomForest or Autoencoder) with MLflow."""
+
+import mlflow
+import mlflow.sklearn
+import pandas as pd
+import argparse
+import os
+import joblib
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score, average_precision_score
+from src.data import generate_data, preprocess_data
+from src.features import engineer_features   # NEW
+from src.utils import setup_logging, plot_roc_curve, plot_confusion_matrix, load_config
+from xgboost import XGBClassifier
+
+logger = setup_logging()
+
+def load_real_data(file_path: str):
+    df = pd.read_csv(file_path)
+    required_cols = ['age', 'income', 'tenure', 'last_purchase_days', 'avg_order_value',
+                     'campaign_channel', 'campaign_type', 'opened', 'sent']
+    for col in required_cols:
+        if col not in df.columns:
+            raise ValueError(f"Missing required column: {col}")
+    return df
+
+def main():
+    config = load_config()
+    mlflow.set_experiment(config['mlflow']['experiment_name'])
+
+    # Load or generate data
+    data_path = None  # You can modify to accept argument
+    if data_path is not None:
+        logger.info(f"Loading real data from {data_path}")
+        df = load_real_data(data_path)
+    else:
+        logger.info("No data path provided. Generating synthetic data.")
+        df = generate_data(
+            n_customers=config['data']['n_customers'],
+            random_state=config['data']['random_state'],
+            sent_prob=config['data']['sent_prob']
+        )
+
+    # Apply feature engineering (optional)
+    feat_config = config.get('features', {}).get('engineering', {})
+    if feat_config.get('enabled', False):
+        logger.info("Applying feature engineering...")
+        df = engineer_features(df, config=feat_config)
+
+    # Preprocess
+    train_df = df[df['sent'] == 1].copy()
+    X_train, X_test, y_train, y_test, preprocessor = preprocess_data(
+        train_df,
+        numeric_features=config['features']['numeric'],
+        categorical_features=config['features']['categorical'],
+        test_size=config['training']['test_size'],
+        random_state=config['training']['random_state']
+    )
+
+    # Train Random Forest
+    with mlflow.start_run(run_name="RandomForest_Baseline"):
+        rf_cfg = config['model']['random_forest']
+        model = RandomForestClassifier(
+            n_estimators=rf_cfg['n_estimators'],
+            random_state=rf_cfg['random_state'],
+            class_weight=rf_cfg['class_weight']
+        )
+        model.fit(X_train, y_train)
+        y_proba = model.predict_proba(X_test)[:, 1]
+        auc = roc_auc_score(y_test, y_proba)
+        mlflow.log_metric("roc_auc", auc)
+        mlflow.sklearn.log_model(model, "random_forest_model")
+        logger.info(f"Random Forest ROC-AUC: {auc:.4f}")
+
+    # Train XGBoost
+    with mlflow.start_run(run_name="XGBoost_Baseline"):
+        xgb_cfg = config['model']['xgboost']
+        xgb_model = XGBClassifier(
+            n_estimators=xgb_cfg['n_estimators'],
+            random_state=xgb_cfg['random_state'],
+            eval_metric=xgb_cfg['eval_metric']
+        )
+        xgb_model.fit(X_train, y_train)
+        y_proba_xgb = xgb_model.predict_proba(X_test)[:, 1]
+        auc_xgb = roc_auc_score(y_test, y_proba_xgb)
+        mlflow.log_metric("roc_auc", auc_xgb)
+        mlflow.sklearn.log_model(xgb_model, "xgboost_model")
+        logger.info(f"XGBoost ROC-AUC: {auc_xgb:.4f}")
+
+    # Save models and preprocessor
+    model_dir = config['paths']['models']
+    os.makedirs(model_dir, exist_ok=True)
+    joblib.dump(model, os.path.join(model_dir, "random_forest.joblib"))
+    joblib.dump(xgb_model, os.path.join(model_dir, "xgboost.joblib"))
+    joblib.dump(preprocessor, os.path.join(model_dir, "preprocessor.joblib"))
+    logger.info("Models and preprocessor saved.")
+
+if __name__ == "__main__":
+    main()
+        """Evaluate model and run six‑month simulation."""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import joblib
+import os
+from sklearn.metrics import roc_auc_score, classification_report
+from src.data import generate_data, preprocess_data
+from src.features import engineer_features   # ADD THIS
+from src.utils import load_config, setup_logging, ensure_dir, plot_roc_curve
+
+logger = setup_logging()
+
+def six_month_simulation(df, model, preprocessor, features, top_percent=0.3, random_months=3, total_months=6):
+    """Simulate random vs model‑based targeting over months."""
+    cumulative_opens = []
+    strategy = ['random'] * random_months + ['model'] * (total_months - random_months)
+
+    for month in range(total_months):
+        month_data = df.sample(frac=1, replace=False).reset_index(drop=True)
+        if strategy[month] == 'random':
+            selected = month_data.sample(frac=top_percent, random_state=month)
+        else:
+            X_month = month_data[features]
+            X_transformed = preprocessor.transform(X_month)
+            probs = model.predict_proba(X_transformed)[:, 1]
+            month_data = month_data.assign(pred_prob=probs)
+            selected = month_data.sort_values('pred_prob', ascending=False).head(int(top_percent * len(month_data)))
+        cumulative_opens.append(selected['opened'].sum())
+
+    return cumulative_opens
+
+def main():
+    config = load_config()
+    df = generate_data(
+        n_customers=config['data']['n_customers'],
+        random_state=config['data']['random_state'],
+        sent_prob=config['data']['sent_prob']
+    )
+
+    # Apply feature engineering if enabled
+    feat_config = config.get('features', {}).get('engineering', {})
+    if feat_config.get('enabled', False):
+        logger.info("Applying feature engineering...")
+        df = engineer_features(df, config=feat_config)
+
+    # Load best model (Random Forest)
+    model_path = os.path.join(config['paths']['models'], "random_forest.joblib")
+    preprocessor_path = os.path.join(config['paths']['models'], "preprocessor.joblib")
+    model = joblib.load(model_path)
+    preprocessor = joblib.load(preprocessor_path)   # Fixed missing parenthesis
+
+    # Prepare test set
+    train_df = df[df['sent'] == 1].copy()
+    features = config['features']['numeric'] + config['features']['categorical']
+    X_train, X_test, y_train, y_test, _ = preprocess_data(
+        train_df,
+        numeric_features=config['features']['numeric'],
+        categorical_features=config['features']['categorical'],
+        test_size=config['training']['test_size'],
+        random_state=config['training']['random_state']
+    )
+
+    # Evaluate
+    y_proba = model.predict_proba(X_test)[:, 1]
+    auc = roc_auc_score(y_test, y_proba)
+    logger.info(f"Model ROC-AUC: {auc:.4f}")
+    print(classification_report(y_test, model.predict(X_test)))
+
+    # Plot ROC curve
+    img_dir = config['paths']['images']
+    ensure_dir(img_dir)
+    plot_roc_curve(y_test, y_proba, save_path=os.path.join(img_dir, "roc_curve.png"))
+
+    # Run simulation
+    sim_opens = six_month_simulation(
+        df, model, preprocessor, features,
+        top_percent=config['targeting']['top_percent'],
+        random_months=config['targeting']['random_initial_months'],
+        total_months=config['targeting']['simulation_months']
+    )
+    improvement = (sum(sim_opens[3:]) / sum(sim_opens[:3]) - 1) * 100
+    logger.info(f"Six‑month improvement: {improvement:.1f}%")
+
+    # Plot simulation
+    plt.figure(figsize=(8,5))
+    plt.plot(range(1, config['targeting']['simulation_months']+1), sim_opens, marker='o')
+    plt.axvline(x=config['targeting']['random_initial_months'] + 0.5, linestyle='--', color='gray')
+    plt.xlabel('Month')
+    plt.ylabel('Number of opens')
+    plt.title('Cumulative Reach Over Six Months')
+    plt.grid(True)
+    plt.savefig(os.path.join(img_dir, "simulation.png"), bbox_inches='tight')
+    plt.show()
+
+if __name__ == "__main__":
+    main()"""Data generation and preprocessing."""
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+
+def generate_data(n_customers=5000, random_state=42, sent_prob=0.8):
+    """Generate synthetic customer campaign data."""
+    np.random.seed(random_state)
+    data = {
+        'customer_id': range(1, n_customers+1),
+        'age': np.random.randint(18, 70, n_customers),
+        'income': np.random.normal(50000, 15000, n_customers).astype(int),
+        'tenure': np.random.randint(1, 120, n_customers),
+        'last_purchase_days': np.random.randint(1, 365, n_customers),
+        'avg_order_value': np.random.normal(100, 30, n_customers).clip(20, 300).astype(int),
+        'campaign_channel': np.random.choice(['email', 'social', 'push'], n_customers),
+        'campaign_type': np.random.choice(['promotional', 'informational', 'loyalty'], n_customers),
+        'sent': np.random.choice([0,1], n_customers, p=[1-sent_prob, sent_prob]),
+    }
+    df = pd.DataFrame(data)
+
+    def generate_opened(row):
+        prob = 0.1
+        if row['last_purchase_days'] < 60:
+            prob += 0.2
+        if row['income'] > 60000:
+            prob += 0.1
+        if row['campaign_channel'] == 'email':
+            prob += 0.15
+        if row['campaign_type'] == 'promotional':
+            prob += 0.1
+        prob = min(prob, 0.9)
+        return np.random.binomial(1, prob)
+
+    df['opened'] = df.apply(generate_opened, axis=1)
+    return df
+
+def preprocess_data(df, numeric_features, categorical_features, test_size=0.2, random_state=42, fit_preprocessor=True):
+    """Split, scale, encode."""
+    X = df[numeric_features + categorical_features]
+    y = df['opened']
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=random_state, stratify=y
+    )
+
+    numeric_transformer = StandardScaler()
+    categorical_transformer = OneHotEncoder(drop='first', handle_unknown='ignore')
+
+    preprocessor = ColumnTransformer([
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ])
+
+    if fit_preprocessor:
+        X_train = preprocessor.fit_transform(X_train)
+        X_test = preprocessor.transform(X_test)
+    else:
+        X_train = preprocessor.transform(X_train)
+        X_test = preprocessor.transform(X_test)
+
+    return X_train, X_test, y_train, y_test, preprocessor
