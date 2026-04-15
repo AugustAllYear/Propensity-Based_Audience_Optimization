@@ -34,7 +34,7 @@ propensity_optimization/
 ├── src/
 │ ├── init.py
 │ ├── data.py # Data generation & preprocessing
-│ ├── features.py # Feature engineering (optional)
+│ ├── features.py 
 │ ├── train.py # Model training (RF, XGBoost)
 │ ├── evaluate.py # Evaluation & simulation
 │ ├── predict.py # Prediction functions
@@ -76,6 +76,17 @@ propensity_optimization/
 ### Configuration
 
 All parameters are centralised in `config/config.yaml`. You can adjust data size, model hyperparameters, targeting thresholds, cost‑benefit defaults, and simulation settings without touching the code.
+
+### Optional Feature Engineering
+
+The codebase includes advanced feature engineering functions (`src/features.py`) that can generate additional predictors such as:
+
+- **Transaction velocity** (rolling count per user over time)
+- **Amount z‑score** (per‑user standardised transaction amount)
+- **Rolling fraud rate** (if historical fraud labels exist)
+- **Card age** (days since card issuance)
+
+These features are **disabled by default** (`enabled: false` in `config/config.yaml` under `features.engineering`) because the synthetic data lacks the necessary columns (`timestamp`, `user_id`, `card_issue_date`, `is_fraud`). To enable them for your own dataset, set `enabled: true` and ensure your data includes the required columns. See `src/features.py` for implementation details.
 
 
 ### Usage

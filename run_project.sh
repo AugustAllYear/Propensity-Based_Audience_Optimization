@@ -1,37 +1,15 @@
-# Full CLI Script to Run pipeline
-
-```bash
 #!/bin/bash
-# Full pipeline runner for Propensity‑Based Audience Optimization
+# Full pipeline runner for Propensity-Based Audience Optimization
+# Prerequisite: Activate your virtual environment before running (e.g., `pyenv activate Propensity_venv`)
 
 set -e  # exit on error
 
 echo "Starting Propensity Optimization Pipeline"
 
-# Try to activate pyenv virtualenv if not already active
+# Verify environment is active
 if [ -z "$VIRTUAL_ENV" ]; then
-    if command -v pyenv &> /dev/null; then
-        # Attempt to activate a known environment (adjust name)
-        env_name="Propensity_venv"   # change to your actual env name
-        if pyenv versions --bare | grep -q "^Propensity_venv$"; then
-            echo "Activating pyenv virtualenv: Propensity_venv"
-            eval "$(pyenv virtualenv-init -)"
-            pyenv activate "Propensity_venv"
-        else
-            echo "Pyenv environment 'Propensity_venv' not found. Please activate manually."
-            exit 1
-        fi
-    else
-        echo "No virtual environment active and pyenv not found. Please activate manually."
-        exit 1
-    fi
-fi
-
-# Activate virtual environment (adjust path if needed)
-if [ -d "venv" ]; then
-    source venv/bin/activate
-else
-    echo "Virtual environment not found. Run setup first."
+    echo "Warning: No virtual environment detected. Please activate your environment first."
+    echo "Example: pyenv activate Propensity_venv"
     exit 1
 fi
 
@@ -43,7 +21,7 @@ python -m src.train
 echo "Evaluating model and running simulation..."
 python -m src.evaluate
 
-# Run tests (optional)
+# Run tests
 echo "Running tests..."
 pytest tests/ -v
 

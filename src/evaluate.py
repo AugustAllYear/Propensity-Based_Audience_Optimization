@@ -7,6 +7,7 @@ import joblib
 import os
 from sklearn.metrics import roc_auc_score, classification_report
 from src.data import generate_data, preprocess_data
+from src.features import engineer_features   # ADD THIS
 from src.utils import load_config, setup_logging, ensure_dir, plot_roc_curve
 
 logger = setup_logging()
@@ -38,11 +39,17 @@ def main():
         sent_prob=config['data']['sent_prob']
     )
 
+    # Apply feature engineering if enabled
+    feat_config = config.get('features', {}).get('engineering', {})
+    if feat_config.get('enabled', False):
+        logger.info("Applying feature engineering...")
+        df = engineer_features(df, config=feat_config)
+
     # Load best model (Random Forest)
     model_path = os.path.join(config['paths']['models'], "random_forest.joblib")
     preprocessor_path = os.path.join(config['paths']['models'], "preprocessor.joblib")
     model = joblib.load(model_path)
-    preprocessor = joblib.load(preprocessor_path)
+    preprocessor = joblib.load(preprocessor_path)   # Fixed missing parenthesis
 
     # Prepare test set
     train_df = df[df['sent'] == 1].copy()

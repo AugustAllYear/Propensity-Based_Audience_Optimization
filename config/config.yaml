@@ -15,6 +15,14 @@ features:
   categorical:
     - campaign_channel
     - campaign_type
+  engineering:               
+    enabled: false
+    velocity: false
+    window_hours: 1
+    z_score: true
+    rolling_fraud: false
+    window_transactions: 7
+    card_age: false
 
 model:
   random_forest:
