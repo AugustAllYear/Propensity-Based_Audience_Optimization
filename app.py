@@ -79,13 +79,13 @@ if 'opened' in df.columns:
     st.metric("Opens captured in top %", f"{actual_opens_top}/{actual_opens_full} ({actual_opens_top/actual_opens_full:.1%})")
 
     # Six‑month simulation
-    sim_opens = six_month_simulation(
-        df, model, preprocessor,
-        config['features']['numeric'] + config['features']['categorical'],
-        top_percent=config['targeting']['top_percent'],
-        random_months=config['targeting']['random_initial_months'],
-        total_months=config['targeting']['simulation_months']
-    )
+    improvement, sim_opens = six_month_simulation(
+    df, model, preprocessor,
+    config['features']['numeric'] + config['features']['categorical'],
+    top_percent=config['targeting']['top_percent'],
+    random_months=config['targeting']['random_initial_months'],
+    total_months=config['targeting']['simulation_months']
+)
     fig, ax = plt.subplots()
     ax.plot(range(1, len(sim_opens)+1), sim_opens, marker='o')
     ax.axvline(x=config['targeting']['random_initial_months']+0.5, linestyle='--', color='gray')

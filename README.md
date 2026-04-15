@@ -57,7 +57,6 @@ propensity_optimization/
 - **Six‑month simulation** shows a **25% increase** in cumulative opens after switching from random to model‑based targeting.
 - **ROC‑AUC improved** from 0.781 (baseline) to 0.794 (tuned Random Forest); XGBoost achieved 0.782.
 
-
 ## Setup
 
 ### Prerequisites
@@ -178,6 +177,8 @@ FastAPI – Open http://localhost:8000/docs for interactive API documentation.
 
 ### Production Considerations
 1. Model Registry – Use MLflow Model Registry to promote models from staging to production.
+
+- **Model Serialization**: For enhanced security, replace `mlflow.sklearn.log_model()` with `mlflow.skops.log_model()` (requires `skops`). This avoids pickle‑based vulnerabilities.
 
 2. Automated Retraining – Schedule src/train.py weekly (already set up via GitHub Actions).
 
